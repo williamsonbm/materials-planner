@@ -1,0 +1,19 @@
+{
+  "name": "ewp-purchase-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone EWP purchase planner — decides which stock lengths to order for a batch of jobs. No database, no network at runtime.",
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "dev": "node src/planner/server.js",
+    "planner": "node src/planner/server.js",
+    "start": "node src/planner/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

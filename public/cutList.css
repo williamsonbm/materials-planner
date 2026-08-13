@@ -1,0 +1,39 @@
+/* =============================================================
+   cutList.css — the per-board cut diagram.
+   Shared by the web app's /optimize.html and the standalone planner, so the
+   office reads the same picture in both places. Moved verbatim out of
+   optimize.html; the grouping rules live in src/ewp/cutListModel.js.
+
+   Expects the host page to define: --brand --ok --ok-bg --ok-ink --low-bg
+   --low-ink --surface --surface-2 --line --line-strong --ink --muted --text
+   ============================================================= */
+
+.jobgroup { margin-bottom:16px; }
+.jobgroup > h3 { font-size:14px; margin:10px 0 8px; }
+.board { margin:0 0 12px; }
+.board .blabel { font-size:13px; margin-bottom:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.board .blabel .src { font-size:11px; font-weight:600; padding:1px 8px; border-radius:999px; }
+.board .blabel .src.onhand { background:var(--ok-bg); color:var(--ok-ink); }
+.board .blabel .src.purchase { background:var(--low-bg); color:var(--low-ink); }
+.board .blabel .waste { color:var(--muted); }
+
+.bar { display:flex; height:30px; border:1px solid var(--line-strong); border-radius:6px; overflow:hidden; background:var(--surface-2); }
+.bar .seg { display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; white-space:nowrap; overflow:hidden;
+            background:var(--brand); border-right:1px solid rgba(255,255,255,.45); }
+.bar .seg:last-child { border-right:none; }
+.bar .seg.waste { background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 5px,var(--line) 5px,var(--line) 10px); color:var(--muted); }
+
+/* Return-to-stock segment (LVL drop ≥ threshold): solid green, distinct from the
+   blue cut segments and the hatched waste. */
+.bar .seg.returnstock { background:var(--ok); color:#fff; font-style:normal; }
+.board .blabel .stock { color:var(--ok-ink); font-weight:600; }
+
+.legend { font-size:12px; color:var(--muted); margin:0 0 10px; display:flex; gap:14px; flex-wrap:wrap; }
+.legend .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; margin-right:5px; }
+.legend .sw.cut { background:var(--brand); } .legend .sw.stock { background:var(--ok); }
+.legend .sw.waste { background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 3px,var(--line) 3px,var(--line) 6px); border:1px solid var(--line-strong); }
+
+/* Per-material section inside a job; identical boards collapse to a ×N badge. */
+.matsection { margin:4px 0 14px; }
+.matsection h4 { font-size:13px; margin:12px 0 8px; color:var(--text); border-bottom:1px solid var(--line-strong); padding-bottom:4px; }
+.board .blabel .qty { display:inline-block; background:var(--ink); color:var(--surface); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:700; margin-right:2px; }

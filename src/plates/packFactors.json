@@ -1,0 +1,578 @@
+[
+ {
+  "sku": "MT18AHS 3x8",
+  "product_line": "MT18AHS",
+  "size": "3x8",
+  "eaches_per_unit": 136,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 3x10",
+  "product_line": "MT18AHS",
+  "size": "3x10",
+  "eaches_per_unit": 128,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 5x8",
+  "product_line": "MT18AHS",
+  "size": "5x8",
+  "eaches_per_unit": 110,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 5x14",
+  "product_line": "MT18AHS",
+  "size": "5x14",
+  "eaches_per_unit": 72,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 6x8",
+  "product_line": "MT18AHS",
+  "size": "6x8",
+  "eaches_per_unit": 88,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 6x10",
+  "product_line": "MT18AHS",
+  "size": "6x10",
+  "eaches_per_unit": 76,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 6x12",
+  "product_line": "MT18AHS",
+  "size": "6x12",
+  "eaches_per_unit": 60,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 6x14",
+  "product_line": "MT18AHS",
+  "size": "6x14",
+  "eaches_per_unit": 44,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 7x8",
+  "product_line": "MT18AHS",
+  "size": "7x8",
+  "eaches_per_unit": 68,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 7x10",
+  "product_line": "MT18AHS",
+  "size": "7x10",
+  "eaches_per_unit": 66,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 7x14",
+  "product_line": "MT18AHS",
+  "size": "7x14",
+  "eaches_per_unit": 44,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 8x10",
+  "product_line": "MT18AHS",
+  "size": "8x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 8x14",
+  "product_line": "MT18AHS",
+  "size": "8x14",
+  "eaches_per_unit": 40,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 9x10",
+  "product_line": "MT18AHS",
+  "size": "9x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18AHS 10x10",
+  "product_line": "MT18AHS",
+  "size": "10x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x4",
+  "product_line": "MT20-BAND",
+  "size": "3x4",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 22000
+ },
+ {
+  "sku": "MT20 3x6",
+  "product_line": "MT20-BAND",
+  "size": "3x6",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 14000
+ },
+ {
+  "sku": "MT20 3x8",
+  "product_line": "MT20-BAND",
+  "size": "3x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 10000
+ },
+ {
+  "sku": "MT20 4x4",
+  "product_line": "MT20-BAND",
+  "size": "4x4",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 15400
+ },
+ {
+  "sku": "MT20 4x5",
+  "product_line": "MT20-BAND",
+  "size": "4x5",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 12600
+ },
+ {
+  "sku": "MT20 4x6",
+  "product_line": "MT20-BAND",
+  "size": "4x6",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 9800
+ },
+ {
+  "sku": "MT20 4x8",
+  "product_line": "MT20-BAND",
+  "size": "4x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 7000
+ },
+ {
+  "sku": "MT20 4x10",
+  "product_line": "MT20-BAND",
+  "size": "4x10",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 5600
+ },
+ {
+  "sku": "MT20 4x12",
+  "product_line": "MT20-BAND",
+  "size": "4x12",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 4200
+ },
+ {
+  "sku": "MT20 5x5",
+  "product_line": "MT20-BAND",
+  "size": "5x5",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 10800
+ },
+ {
+  "sku": "MT20 5x6",
+  "product_line": "MT20-BAND",
+  "size": "5x6",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 8400
+ },
+ {
+  "sku": "MT20 5x7",
+  "product_line": "MT20-BAND",
+  "size": "5x7",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 7200
+ },
+ {
+  "sku": "MT20 5x8",
+  "product_line": "MT20-BAND",
+  "size": "5x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 6000
+ },
+ {
+  "sku": "MT20 5x12",
+  "product_line": "MT20-BAND",
+  "size": "5x12",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 3600
+ },
+ {
+  "sku": "MT20 6x6",
+  "product_line": "MT20-BAND",
+  "size": "6x6",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 7000
+ },
+ {
+  "sku": "MT20 6x8",
+  "product_line": "MT20-BAND",
+  "size": "6x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 5000
+ },
+ {
+  "sku": "MT20 7x8",
+  "product_line": "MT20-BAND",
+  "size": "7x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 4000
+ },
+ {
+  "sku": "MT20 7x14",
+  "product_line": "MT20-BAND",
+  "size": "7x14",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 2400
+ },
+ {
+  "sku": "MT20 8x8",
+  "product_line": "MT20-BAND",
+  "size": "8x8",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 4000
+ },
+ {
+  "sku": "MT20 10x10",
+  "product_line": "MT20-BAND",
+  "size": "10x10",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x10",
+  "product_line": "MT20-BAND",
+  "size": "3x10",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 8000
+ },
+ {
+  "sku": "MT20 4x7",
+  "product_line": "MT20-BAND",
+  "size": "4x7",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 8400
+ },
+ {
+  "sku": "MT20 7x10",
+  "product_line": "MT20-BAND",
+  "size": "7x10",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 3200
+ },
+ {
+  "sku": "MT20 12x12",
+  "product_line": "MT20-BAND",
+  "size": "12x12",
+  "eaches_per_unit": 20,
+  "unit_label": "pack",
+  "pallet_eaches": 1200
+ },
+ {
+  "sku": "MT20 1.5x3",
+  "product_line": "MT20-BOX",
+  "size": "1.5x3",
+  "eaches_per_unit": 1296,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 1.5x4",
+  "product_line": "MT20-BOX",
+  "size": "1.5x4",
+  "eaches_per_unit": 936,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 2x4",
+  "product_line": "MT20-BOX",
+  "size": "2x4",
+  "eaches_per_unit": 14100,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 2x6",
+  "product_line": "MT20-BOX",
+  "size": "2x6",
+  "eaches_per_unit": 402,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x3",
+  "product_line": "MT20-BOX",
+  "size": "3x3",
+  "eaches_per_unit": 600,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x6",
+  "product_line": "MT20-BOX",
+  "size": "3x6",
+  "eaches_per_unit": 260,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x8",
+  "product_line": "MT20-BOX",
+  "size": "3x8",
+  "eaches_per_unit": 192,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x10",
+  "product_line": "MT20-BOX",
+  "size": "3x10",
+  "eaches_per_unit": 140,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 4x4",
+  "product_line": "MT20-BOX",
+  "size": "4x4",
+  "eaches_per_unit": 330,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 4x7",
+  "product_line": "MT20-BOX",
+  "size": "4x7",
+  "eaches_per_unit": 180,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 4x8",
+  "product_line": "MT20-BOX",
+  "size": "4x8",
+  "eaches_per_unit": 150,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 5x6",
+  "product_line": "MT20-BOX",
+  "size": "5x6",
+  "eaches_per_unit": 160,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 5x12",
+  "product_line": "MT20-BOX",
+  "size": "5x12",
+  "eaches_per_unit": 96,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 6x8",
+  "product_line": "MT20-BOX",
+  "size": "6x8",
+  "eaches_per_unit": 100,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 7x8",
+  "product_line": "MT20-BOX",
+  "size": "7x8",
+  "eaches_per_unit": 84,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 7x10",
+  "product_line": "MT20-BOX",
+  "size": "7x10",
+  "eaches_per_unit": 80,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 7x14",
+  "product_line": "MT20-BOX",
+  "size": "7x14",
+  "eaches_per_unit": 46,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 8x8",
+  "product_line": "MT20-BOX",
+  "size": "8x8",
+  "eaches_per_unit": 84,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 8x14",
+  "product_line": "MT20-BOX",
+  "size": "8x14",
+  "eaches_per_unit": 46,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 10x10",
+  "product_line": "MT20-BOX",
+  "size": "10x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 10x14",
+  "product_line": "MT20-BOX",
+  "size": "10x14",
+  "eaches_per_unit": 44,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 12x12",
+  "product_line": "MT20-BOX",
+  "size": "12x12",
+  "eaches_per_unit": 32,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 12x14",
+  "product_line": "MT20-BOX",
+  "size": "12x14",
+  "eaches_per_unit": 32,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20 3x9",
+  "product_line": "MT20-BOX",
+  "size": "3x9",
+  "eaches_per_unit": 160,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 5x10",
+  "product_line": "MT20HS",
+  "size": "5x10",
+  "eaches_per_unit": 100,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 6x8",
+  "product_line": "MT20HS",
+  "size": "6x8",
+  "eaches_per_unit": 100,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 6x10",
+  "product_line": "MT20HS",
+  "size": "6x10",
+  "eaches_per_unit": 96,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 6x12",
+  "product_line": "MT20HS",
+  "size": "6x12",
+  "eaches_per_unit": 76,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 7x8",
+  "product_line": "MT20HS",
+  "size": "7x8",
+  "eaches_per_unit": 84,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 7x10",
+  "product_line": "MT20HS",
+  "size": "7x10",
+  "eaches_per_unit": 80,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 10x10",
+  "product_line": "MT20HS",
+  "size": "10x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 10x12",
+  "product_line": "MT20HS",
+  "size": "10x12",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT20HS 5x8",
+  "product_line": "MT20HS",
+  "size": "5x8",
+  "eaches_per_unit": 110,
+  "unit_label": "box",
+  "pallet_eaches": null
+ }
+]

@@ -1,0 +1,8 @@
+{
+  "name": "EWP Purchase Planner",
+  "description": "Standalone EWP purchase planner — decides which stock lengths to order for a batch of jobs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,9 @@
+# Normalize text in the repo, but PIN the test fixtures to LF on checkout.
+#
+# The tests compare parsed CSV output exactly. On Windows, core.autocrlf=true
+# would rewrite these files to CRLF on checkout, changing what parseJobCsv sees
+# for reasons that have nothing to do with the code. Pin them so the suite
+# behaves identically on Linux and Windows 11.
+* text=auto
+
+test/ewp-fixtures/*.csv  text eol=lf

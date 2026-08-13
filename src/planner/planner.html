@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EWP Purchase Planner</title>
+<link rel="stylesheet" href="/cutList.css">
+<style>
+  /* The palette below feeds BOTH this page and the shared /cutList.css, which
+     expects the web app's token names (--brand, --ok, --surface-2, …). Mapping
+     them here is what lets the planner reuse the app's cut diagrams verbatim
+     instead of owning a second copy. */
+  :root {
+    --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#606a76; --line:#dfe3e8;
+    --accent:#1f6feb; --good-bg:#e8f5ee; --good:#137a45; --warn-bg:#fdf1e3; --warn:#9a5b00;
+    --info-bg:#eaf1fd; --drop:#6a5acd;
+    /* → tokens the shared cut-list stylesheet reads */
+    --brand:#1f6feb; --ok:#137a45; --ok-bg:#e8f5ee; --ok-ink:#0f5c34;
+    --low-bg:#fdf1e3; --low-ink:#9a5b00;
+    --surface:#fff; --surface-2:#eef1f4; --line-strong:#c8ced6; --text:#1b1f24;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171a; --card:#1c2024; --ink:#e6e9ed; --muted:#9aa4b0; --line:#2c3238;
+            --accent:#5b9bff; --good-bg:#12291d; --good:#54c58a; --warn-bg:#2b2113; --warn:#e0a34a;
+            --info-bg:#151d2b; --drop:#a99bff;
+            --brand:#5b9bff; --ok:#2e8b57; --ok-bg:#12291d; --ok-ink:#54c58a;
+            --low-bg:#2b2113; --low-ink:#e0a34a;
+            --surface:#1c2024; --surface-2:#23282d; --line-strong:#3a424a; --text:#e6e9ed; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--ink);
+         font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  .nav { display:inline-flex; border:1px solid var(--line-strong); border-radius:8px; overflow:hidden; }
+  .nav a { padding:7px 16px; font-size:13.5px; text-decoration:none; color:var(--muted);
+           background:var(--card); border-right:1px solid var(--line-strong); }
+  .nav a:last-child { border-right:0; }
+  .nav a.on { background:var(--accent); color:#fff; }
+  .nav a:not(.on):hover { background:var(--surface-2); color:var(--ink); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:16px; margin-bottom:16px; }
+  #drop, #stockdrop { border:2px dashed var(--line); border-radius:10px; padding:32px;
+          text-align:center; color:var(--muted); cursor:pointer;
+          transition:border-color .15s, background .15s; }
+  #stockdrop { padding:18px; }
+  #drop.over, #stockdrop.over { border-color:var(--accent); background:var(--info-bg); }
+  #drop strong, #stockdrop strong { color:var(--ink); }
+  /* A stock line that ends the batch below its reorder point. Same warm palette
+     as .note, so "needs attention" reads the same everywhere on the page. */
+  tr.low td { background:var(--warn-bg); color:var(--warn); }
+  td.zero { color:var(--muted); }
+  .files { list-style:none; padding:0; margin:12px 0 0; }
+  .files li { display:flex; justify-content:space-between; gap:12px; padding:6px 0;
+              border-bottom:1px solid var(--line); }
+  .files li:last-child { border-bottom:0; }
+  .rm { background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; }
+  .rm:hover { color:#c0392b; }
+  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  .hint { font-weight:400; color:var(--muted); font-size:12px; }
+  input[type=number] { padding:7px 9px; border:1px solid var(--line); border-radius:6px;
+         background:var(--card); color:var(--ink); font:inherit; width:110px; }
+  button.go { background:var(--accent); color:#fff; border:0; border-radius:7px;
+              padding:9px 20px; font:600 14px/1 inherit; cursor:pointer; }
+  button.go:disabled { opacity:.5; cursor:default; }
+  details.pools { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+  details.pools summary { cursor:pointer; font-weight:600; }
+  .pool { margin:12px 0; }
+  .pool .row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .len { position:relative; }
+  .len input { position:absolute; opacity:0; width:0; height:0; }
+  .len span { display:inline-block; padding:5px 10px; border:1px solid var(--line);
+              border-radius:6px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:13px; }
+  .len input:checked + span { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .quick { background:none; border:1px solid var(--line); border-radius:6px; padding:3px 9px;
+           font:inherit; font-size:12px; color:var(--muted); cursor:pointer; margin-left:6px; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.win td { background:var(--good-bg); font-weight:600; }
+  th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+  th.sortable:hover { color:var(--accent); }
+  th.sortable.sorted { color:var(--accent); }
+  .pill { display:inline-block; background:var(--good-bg); color:var(--good); border-radius:20px;
+          padding:2px 10px; font-size:12px; font-weight:600; }
+  .big { font-size:26px; font-weight:700; margin:10px 0 2px; }
+  .stat { display:inline-block; margin-right:26px; }
+  .stat b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--muted); font-size:12px; }
+  .stat.drops b { color:var(--drop); }
+  .sugg { list-style:none; padding:0; margin:0; }
+  .sugg li { background:var(--info-bg); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .sugg li.clean { background:var(--good-bg); color:var(--good); font-weight:600; }
+  .note { background:var(--warn-bg); color:var(--warn); border-radius:8px; padding:10px 12px;
+          margin-bottom:12px; }
+  .muted { color:var(--muted); }
+  /* .board / .bar / .matsection / .jobgroup / .legend all come from /cutList.css. */
+  .hint { color:var(--muted); font-weight:400; font-size:13px; }
+  .spin { display:inline-block; width:13px; height:13px; border:2px solid currentColor;
+          border-right-color:transparent; border-radius:50%; animation:s .7s linear infinite;
+          vertical-align:-2px; margin-right:6px; }
+  @keyframes s { to { transform:rotate(360deg); } }
+</style>
+<!-- Cut-list grouping + diagrams, shared verbatim with the web app's optimize
+     page. Not deferred: the inline script below uses them as globals. -->
+<script src="/cutListModel.js"></script>
+<script src="/cutList.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <nav class="nav"><a href="/" class="on">EWP</a><a href="/plates">Plates</a></nav>
+    <h1 style="margin-top:14px">EWP Purchase Planner</h1>
+    <p class="sub">Drop in one or more MiTek material summaries. The length search assumes
+       <strong>no stock on hand</strong> &mdash; every piece is priced as a purchase &mdash; so the
+       lengths it recommends mean the same thing week to week. Add a stock list and it also nets
+       the order against the yard. The search picks <strong>I-Joist</strong> lengths;
+       LVL and Rim Board lengths are set by you, not searched.</p>
+  </div>
+
+  <div class="card">
+    <div id="drop">
+      <strong>Drop material summary CSVs here</strong><br>
+      or click to choose files
+      <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+    </div>
+    <ul class="files" id="filelist"></ul>
+  </div>
+
+  <div class="card">
+    <div id="stockdrop">
+      <strong>Stock on hand</strong> &mdash; optional<br>
+      <span class="hint">one CSV with <code>item</code>, <code>span</code> and a quantity column.
+        Uses <code>available</code> (on hand minus committed) when it&rsquo;s there.</span>
+      <input type="file" id="stockfile" accept=".csv,text/csv" hidden>
+    </div>
+    <ul class="files" id="stocklist"></ul>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <div>
+        <label for="maxlen">Max lengths <em>per product</em><br><span class="hint">each product is its own PO decision</span></label>
+        <input type="number" id="maxlen" min="1" max="6" value="4">
+      </div>
+      <div>
+        <label for="dropmin">LVL drop threshold (ft)<br><span class="hint">offcut this long or more returns to stock</span></label>
+        <input type="number" id="dropmin" min="0" max="48" step="1" value="8">
+      </div>
+      <button class="go" id="go" disabled>Find best lengths</button>
+    </div>
+
+    <details class="pools" id="poolsBox">
+      <summary>Purchasable lengths &mdash; what the supplier will actually sell you</summary>
+      <div id="poolbox"><p class="muted">Drop in a material summary to see the products in it.</p></div>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">
+        Session only. Nothing is saved, and nothing here changes the web app.
+      </p>
+    </details>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const filelist = document.getElementById('filelist');
+const stockdrop = document.getElementById('stockdrop');
+const stockInput = document.getElementById('stockfile');
+const stocklist = document.getElementById('stocklist');
+const go = document.getElementById('go');
+const out = document.getElementById('out');
+const poolbox = document.getElementById('poolbox');
+
+let files = [];        // [{name, text}]
+let stockFile = null;  // {name, text} — ONE yard snapshot, not a list
+let STOCK = null;      // /api/inspect — what the server made of that file
+let MENU = null;       // /api/menu
+let PRODUCTS = [];     // /api/inspect — one entry per I-Joist product in the batch
+let LAST = null;       // last /api/plan response, kept so sorting needn't re-plan
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
+const lenList = (ls) => (ls || []).map((l) => l + '&prime;').join(', ');
+
+// ---- pool editor -----------------------------------------------------------
+// One row per SOURCING UNIT. For I-Joist that is a PRODUCT, not a depth: two
+// products can share a depth and still be stocked in different lengths, so the
+// grid is keyed on the product and labelled with its depth.
+function poolRow(id, title, sub, pool, checked) {
+  return `<div class="pool"><label>${title}` +
+    `<button class="quick" data-pool="${id}" data-q="supplier">supplier</button>` +
+    `<button class="quick" data-pool="${id}" data-q="all">all</button>` +
+    `<button class="quick" data-pool="${id}" data-q="none">none</button>` +
+    (sub ? `<br><span class="hint">${sub}</span>` : '') +
+    `</label><div class="row" id="pool-${id}">` +
+    pool.map((l) => `<label class="len"><input type="checkbox" value="${l}"` +
+      `${checked.includes(l) ? ' checked' : ''}><span>${l}&prime;</span></label>`).join('') +
+    '</div></div>';
+}
+function readPool(id) {
+  const box = document.getElementById(`pool-${id}`);
+  if (!box) return null;
+  return [...box.querySelectorAll('input:checked')].map((i) => Number(i.value));
+}
+const poolId = (i) => 'p' + i;     // product index -> DOM id (keys contain quotes)
+
+function renderPools() {
+  if (!MENU) return;
+  if (!PRODUCTS.length) {
+    poolbox.innerHTML = '<p class="muted">Drop in a material summary to see the products in it.</p>';
+    return;
+  }
+  poolbox.innerHTML =
+    '<p class="muted" style="font-size:12px;margin:0 0 6px">I-Joist &mdash; searched. Each product ' +
+    'is priced separately, so each gets its own lengths and its own budget.</p>' +
+    PRODUCTS.map((p, i) => poolRow(poolId(i), esc(p.size),
+      `depth ${esc(p.depth || '?')} &middot; ${p.pieces} pieces &middot; ${fmt(p.feet)} ft`,
+      MENU.lengthMenu, MENU.supplierDefault)).join('') +
+    '<p class="muted" style="font-size:12px;margin:14px 0 6px">LVL and Rim Board &mdash; set, not searched.</p>' +
+    poolRow('lvl', 'LVL', '', MENU.lengthMenu, MENU.byCat.LVL) +
+    poolRow('rim', 'Rim Board', '', MENU.lengthMenu, MENU.byCat.RimBoard);
+}
+
+poolbox.addEventListener('click', (e) => {
+  const b = e.target.closest('.quick');
+  if (!b) return;
+  e.preventDefault();
+  const set = b.dataset.q === 'all' ? MENU.lengthMenu
+            : b.dataset.q === 'none' ? []
+            : MENU.supplierDefault;
+  document.querySelectorAll(`#pool-${b.dataset.pool} input`).forEach((i) => {
+    i.checked = set.includes(Number(i.value));
+  });
+});
+
+async function loadMenu() {
+  const res = await fetch('/api/menu', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`/api/menu returned HTTP ${res.status}`);
+  const m = await res.json();
+  for (const k of ['lengthMenu', 'supplierDefault', 'byCat', 'lvlDropMinFt']) {
+    if (m[k] === undefined) {
+      throw new Error(`/api/menu is missing "${k}" — the page and the server are ` +
+                      'out of step. Hard-reload (Ctrl-Shift-R) and restart the planner.');
+    }
+  }
+  MENU = m;
+  document.getElementById('dropmin').value = MENU.lvlDropMinFt;
+  renderPools();
+}
+
+loadMenu().catch((err) => {
+  MENU_FAILED = true;
+  go.disabled = true;
+  poolbox.innerHTML = `<div class="note">Could not load the length menu: ${esc(err.message)}</div>`;
+  out.innerHTML = '<div class="card note"><strong>The planner did not finish loading.</strong>' +
+    `<br>${esc(err.message)}<br><br>Try a hard reload (Ctrl-Shift-R). If that doesn't help, ` +
+    'restart <code>npm run planner</code> and reload.</div>';
+});
+
+// ---- files -----------------------------------------------------------------
+let MENU_FAILED = false;
+
+function renderFiles() {
+  filelist.innerHTML = files.map((f, i) =>
+    `<li><span>${esc(f.name)}</span><button class="rm" data-i="${i}" title="remove">&times;</button></li>`
+  ).join('');
+  // Adding a file must not re-enable the button when the page never finished
+  // loading — that produced a button that looked live and did nothing at all.
+  go.disabled = MENU_FAILED || files.length === 0;
+}
+filelist.addEventListener('click', (e) => {
+  const b = e.target.closest('.rm');
+  if (b) { files.splice(Number(b.dataset.i), 1); renderFiles(); inspect(); }
+});
+
+// ---- the yard snapshot -----------------------------------------------------
+// One file, replaced rather than appended: this is "what is on hand right now",
+// and two of those would just be a question about which is current.
+function renderStock() {
+  if (!stockFile) { stocklist.innerHTML = ''; return; }
+  const s = STOCK || {};
+  let detail;
+  if (s.error) detail = `<span style="color:var(--warn)">${esc(s.error)}</span>`;
+  else if (s.rows != null) {
+    detail = `${s.rows} row${s.rows === 1 ? '' : 's'}` +
+      (s.qtyColumn ? ` &middot; quantity from <code>${esc(s.qtyColumn)}</code>` : '') +
+      (s.skipped ? ` &middot; ${s.skipped} skipped` : '');
+  } else detail = files.length ? 'reading&hellip;'
+    : 'waiting for a material summary &mdash; the stock list is read against a batch';
+  stocklist.innerHTML =
+    `<li><span>${esc(stockFile.name)}<br><span class="hint">${detail}</span></span>` +
+    '<button class="rm" id="rmstock" title="remove">&times;</button></li>' +
+    coverageNote();
+}
+
+// Name the products the stock file says NOTHING about. That is not the same as
+// "none on hand" — it usually means the export didn't cover that series — and
+// it is much cheaper to learn now than after a 40-second plan.
+function coverageNote() {
+  const cov = (STOCK && STOCK.coverage) || null;
+  if (!cov) return '';
+  const missing = cov.filter((c) => !c.inStockFile);
+  if (!missing.length) return '';
+  return '<li><span class="hint">Not mentioned in this stock file: <strong>' +
+    missing.map((c) => esc(c.size)).join('</strong>, <strong>') +
+    '</strong> &mdash; planned as a full purchase.</span></li>';
+}
+
+stocklist.addEventListener('click', (e) => {
+  if (e.target.closest('#rmstock')) { stockFile = null; STOCK = null; renderStock(); inspect(); }
+});
+
+// Ask the server what products are in the batch as soon as the files change —
+// the pool editor cannot be drawn without that, and parsing is server-side.
+// Parse only, no packing, so this is effectively instant.
+async function inspect() {
+  if (!files.length) { PRODUCTS = []; STOCK = null; renderPools(); renderStock(); return; }
+  try {
+    const r = await (await fetch('/api/inspect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store', body: JSON.stringify({ files, stock: stockFile }),
+    })).json();
+    if (!r.ok) { PRODUCTS = []; renderPools(); return; }
+    PRODUCTS = r.products;
+    STOCK = r.stock ? { ...r.stock, coverage: r.coverage } : null;
+    // The server sniffs each file's header, so a stock list dropped in the jobs
+    // zone still lands in the right pile. Reflect that back in the UI rather
+    // than leaving the file sitting visibly in the wrong list.
+    if (r.rerouted && r.rerouted.length) applyReroute(r.rerouted);
+    renderPools();
+    renderStock();
+    document.getElementById('poolsBox').open = PRODUCTS.length > 1;
+  } catch { /* the plan request will surface any real problem */ }
+}
+
+function applyReroute(rerouted) {
+  for (const x of rerouted) {
+    if (x.to === 'stock') {
+      const i = files.findIndex((f) => f.name === x.name);
+      if (i !== -1) { stockFile = files[i]; files.splice(i, 1); }
+    } else if (x.to === 'jobs') {
+      if (stockFile && stockFile.name === x.name) {
+        if (!files.some((f) => f.name === x.name)) files.push(stockFile);
+        stockFile = null;
+      }
+    }
+  }
+  renderFiles();
+}
+
+async function addFiles(list) {
+  for (const f of list) {
+    if (!/\.csv$/i.test(f.name)) continue;
+    if (files.some((x) => x.name === f.name)) continue;
+    files.push({ name: f.name, text: await f.text() });
+  }
+  renderFiles();
+  await inspect();
+}
+
+async function setStock(list) {
+  const f = [...list].find((x) => /\.csv$/i.test(x.name));
+  if (!f) return;
+  stockFile = { name: f.name, text: await f.text() };
+  STOCK = null;
+  renderStock();
+  await inspect();
+}
+
+drop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+stockdrop.addEventListener('click', () => stockInput.click());
+stockInput.addEventListener('change', () => { setStock(stockInput.files); stockInput.value = ''; });
+[[drop, addFiles], [stockdrop, setStock]].forEach(([el, handler]) => {
+  ['dragenter','dragover'].forEach((ev) =>
+    el.addEventListener(ev, (e) => { e.preventDefault(); el.classList.add('over'); }));
+  ['dragleave','drop'].forEach((ev) =>
+    el.addEventListener(ev, (e) => { e.preventDefault(); el.classList.remove('over'); }));
+  el.addEventListener('drop', (e) => handler(e.dataTransfer.files));
+});
+
+// ---- how long will this take? ----------------------------------------------
+// The old estimate ignored the LENGTH POOL entirely, so ticking "all" — which
+// takes the pool from 8 lengths to 19 — still promised "40–80 seconds" while the
+// run actually took five minutes. Cost is driven by two things:
+//
+//   * candidate sets to pack: C(pool, k) summed over k, which explodes with the
+//     pool (8 lengths at cap 5 = 218 sets; 19 lengths at cap 5 = 16,663), and
+//   * full-budget refinements: roughly (cap + 3) engine runs, each proportional
+//     to the number of jobs AND to the pool size (more allowed lengths means
+//     more candidate boards to try per cut).
+//
+// Calibrated against measured four-job runs: 47s (pool 8, cap 4), 50s (pool 8,
+// cap 5), 136s (pool 19, cap 5, greedy).
+const GREEDY_ABOVE_SETS = 400;
+
+function combos(n, k) {
+  let c = 1;
+  for (let i = 0; i < k; i++) c = c * (n - i) / (i + 1);
+  return Math.round(c);
+}
+
+function estimate(nMax, poolBySize) {
+  const pools = Object.values(poolBySize);
+  if (!pools.length) return { sets: 0, lo: 'a few seconds', hi: '', greedy: false, advice: '' };
+
+  let sets = 0, worstPool = 0, greedy = false;
+  for (const pool of pools) {
+    const cap = Math.min(nMax, pool.length);
+    let exhaustive = 0;
+    for (let k = 1; k <= cap; k++) exhaustive += combos(pool.length, k);
+    const g = exhaustive > GREEDY_ABOVE_SETS;
+    greedy = greedy || g;
+    // Greedy grows the set one length at a time: pool + (pool-1) + …
+    let n = 0;
+    if (g) for (let k = 0; k < cap; k++) n += pool.length - k;
+    sets += g ? n : exhaustive;
+    worstPool = Math.max(worstPool, pool.length);
+  }
+
+  const runs = nMax + 3;                              // curve refinements + finalists
+  const secs = runs * 1.2 * files.length * (worstPool / 8) * 1.4 * PRODUCTS.length;
+  const fmtT = (s) => (s < 90 ? `${Math.round(s / 5) * 5} seconds`
+    : `${(s / 60).toFixed(s < 600 ? 1 : 0)} minutes`);
+
+  let advice = 'Fewer jobs, fewer ticked lengths, or a lower cap is faster.';
+  if (worstPool > 12) {
+    advice = 'Most of this is the wide length pool — the supplier set (8 lengths) ' +
+             'is far quicker and is what you can actually order today.';
+  } else if (files.length > 3) {
+    advice = 'Most of this is the number of jobs in the batch.';
+  }
+  return { sets, lo: fmtT(secs * 0.7), hi: fmtT(secs * 1.5), greedy, advice };
+}
+
+// ---- run -------------------------------------------------------------------
+go.addEventListener('click', async () => {
+  if (!MENU) {
+    // Never fail silently: a dead button with no explanation is the worst
+    // outcome, and it is exactly what this used to do.
+    out.innerHTML = '<div class="card note"><strong>The page never finished loading.</strong>' +
+      '<br>Hard-reload with Ctrl-Shift-R. If that does not help, restart ' +
+      '<code>npm run planner</code> and reload.</div>';
+    return;
+  }
+  if (!PRODUCTS.length) await inspect();
+
+  const poolBySize = {};
+  const missing = [];
+  PRODUCTS.forEach((p, i) => {
+    const sel = readPool(poolId(i));
+    if (sel === null) { missing.push('the length menu never loaded'); return; }
+    if (!sel.length) { missing.push(p.size); return; }
+    poolBySize[p.key] = sel;
+  });
+  const lvl = readPool('lvl'), rim = readPool('rim');
+  if (lvl && !lvl.length) missing.push('LVL');
+  if (rim && !rim.length) missing.push('Rim Board');
+  if (missing.length) {
+    out.innerHTML = '<div class="card note">Tick at least one purchasable length for ' +
+      `<strong>${missing.map(esc).join('</strong>, <strong>')}</strong> under ` +
+      '&ldquo;Purchasable lengths&rdquo;.</div>';
+    return;
+  }
+
+  go.disabled = true;
+  const nMax = Number(document.getElementById('maxlen').value) || 3;
+  const plan = estimate(nMax, poolBySize);
+  out.innerHTML = '<div class="card"><span class="spin"></span>' +
+    `Packing ${plan.sets.toLocaleString()} length combination${plan.sets === 1 ? '' : 's'} across ` +
+    `${PRODUCTS.length} product${PRODUCTS.length === 1 ? '' : 's'}&hellip;` +
+    `<div class="muted" style="margin-top:8px">` +
+    `${files.length} job${files.length === 1 ? '' : 's'} &middot; up to ${nMax} lengths each &middot; ` +
+    `<strong>expect ${plan.lo}&ndash;${plan.hi}</strong>` +
+    (plan.greedy ? ' &middot; using greedy selection because the length pool is large' : '') +
+    `<br>${esc(plan.advice)}</div></div>`;
+
+  const body = {
+    files,
+    stock: stockFile,
+    maxLengths: nMax,
+    lvlDropMinFt: Number(document.getElementById('dropmin').value) || MENU.lvlDropMinFt,
+    poolBySize,
+    purchaseLengthsByCat: { LVL: lvl, RimBoard: rim },
+  };
+
+  let r;
+  try {
+    r = await (await fetch('/api/plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store', body: JSON.stringify(body),
+    })).json();
+  } catch (err) {
+    out.innerHTML = `<div class="card note">Request failed: ${esc(err.message)}</div>`;
+    go.disabled = false; return;
+  }
+  go.disabled = false;
+
+  if (!r.ok) { out.innerHTML = `<div class="card note">${esc(r.error)}</div>`; return; }
+
+  // Version skew: an already-open tab keeps running the JS it loaded, so
+  // restarting the server is not enough after the response shape changes. When
+  // the payload isn't the one this page knows how to read, SAY SO — the old
+  // behavior was a TypeError deep inside rendering and a blank result area.
+  if (!Array.isArray(r.products) || !r.totals) {
+    out.innerHTML = '<div class="card note"><strong>This page is out of step with the server.</strong>' +
+      '<br>It expected a per-product result and got something else, which usually means the ' +
+      'tab was loaded before the planner was updated.<br><br>' +
+      'Hard-reload with <strong>Ctrl-Shift-R</strong> and run it again.</div>';
+    return;
+  }
+
+  LAST = r;
+  SORT = { col: null, dir: 0 };
+  render();
+});
+
+// ---- buy-list sorting ------------------------------------------------------
+// Tri-state, per the shop's ask: first click highest-first, second lowest-first,
+// third back to the natural order (category, size, then longest length first).
+// Purely client-side over the fetched list — sorting never re-plans anything.
+let SORT = { col: null, dir: 0 };
+// `qty` on the greenfield buy list, `buy` on the netted one — sort the column
+// the table is actually showing.
+const pieceCount = (p) => (p.qty != null ? p.qty : p.buy);
+const SORT_KEYS = {
+  length: (p) => p.stockLength,
+  pieces: pieceCount,
+  feet: (p) => p.stockLength * pieceCount(p),
+};
+
+function cycleSort(col) {
+  if (SORT.col !== col) SORT = { col, dir: -1 };        // 1st click: descending
+  else if (SORT.dir === -1) SORT.dir = 1;               // 2nd click: ascending
+  else SORT = { col: null, dir: 0 };                    // 3rd click: off
+  render();
+}
+
+function sortedBuyList(list) {
+  if (!SORT.col || !SORT.dir) return list;              // server's natural order
+  const key = SORT_KEYS[SORT.col];
+  // Stable: equal values keep their natural-order position.
+  return list.map((p, i) => [p, i]).sort((a, b) =>
+    (key(a[0]) - key(b[0])) * SORT.dir || (a[1] - b[1])
+  ).map(([p]) => p);
+}
+
+const sortTh = (col, label) => {
+  const on = SORT.col === col && SORT.dir;
+  const arrow = !on ? '' : (SORT.dir === -1 ? ' ▼' : ' ▲');
+  return `<th class="num sortable${on ? ' sorted' : ''}" data-sort="${col}" ` +
+    `aria-sort="${!on ? 'none' : (SORT.dir === -1 ? 'descending' : 'ascending')}" ` +
+    `title="click to sort; three clicks clears">${label}${arrow}</th>`;
+};
+
+out.addEventListener('click', (e) => {
+  const th = e.target.closest('th.sortable');
+  if (th) cycleSort(th.dataset.sort);
+});
+
+// ---- rendering -------------------------------------------------------------
+// A rendering bug used to blank the results area with no clue why — the error
+// went to the console and the page just looked broken. Show it instead.
+function render() {
+  try {
+    out.innerHTML = view(LAST);
+  } catch (err) {
+    out.innerHTML = '<div class="card note"><strong>Could not display the result.</strong>' +
+      `<br>${esc(err && err.message ? err.message : String(err))}` +
+      '<br><br>A hard reload (Ctrl-Shift-R) fixes this if the planner was updated ' +
+      'while this tab was open.</div>';
+  }
+}
+
+function view(r) {
+  let h = '';
+
+  if (r.rejected && r.rejected.length) {
+    h += '<div class="card note"><strong>Skipped files</strong><ul>' +
+      r.rejected.map((x) => `<li>${esc(x.name)} &mdash; ${esc(x.reason)}</li>`).join('') +
+      '</ul></div>';
+  }
+
+  h += '<div class="card"><h2>Jobs in this batch</h2><div class="tablewrap"><table>' +
+    '<tr><th>Job</th><th>Name</th><th>Delivery</th><th>Categories</th><th class="num">Pieces</th></tr>' +
+    r.jobs.map((j) => `<tr><td>${esc(j.jobNumber)}</td><td>${esc(j.jobName)}</td>` +
+      `<td>${esc(j.deliveryDate)}</td><td>${esc(j.categories.join(', '))}</td>` +
+      `<td class="num">${j.pieces}</td></tr>`).join('') +
+    '</table></div></div>';
+
+  if (r.error) h += `<div class="card note">${esc(r.error)}</div>`;
+  if (!r.totals) return h;
+
+  const t = r.totals;
+  const stock = r.stock || null;
+
+  if (r.stockInfo && r.stockInfo.error) {
+    h += `<div class="card note"><strong>Stock list not applied.</strong><br>${esc(r.stockInfo.error)}` +
+      '<br>The plan below prices every piece as a purchase.</div>';
+  }
+
+  // --- the whole order at a glance
+  h += '<div class="card"><span class="pill">This order</span>' +
+    '<div style="margin-top:14px">' +
+    `<span class="stat"><b>${fmt(t.trueWaste)} ft</b><span>true waste</span></span>` +
+    `<span class="stat drops"><b>${fmt(t.recoverableDrops)} ft</b><span>drops back to stock</span></span>` +
+    `<span class="stat"><b>${t.boardsPurchased}</b><span>pieces to buy</span></span>` +
+    `<span class="stat"><b>${fmt(t.feetPurchased)} ft</b><span>total purchased</span></span>` +
+    '</div>';
+  if (stock) {
+    // Both figures, side by side and labelled. The greenfield number is what
+    // the search RANKED on and what stays comparable between runs; as-planned is
+    // what this batch actually costs now that the yard is in play. Drawing an
+    // odd on-hand length routinely trades a little waste for a lot less spend,
+    // and that trade should be visible rather than quietly folded into one
+    // number.
+    const a = stock.totals.asPlanned;
+    h += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">' +
+      '<span class="pill">With stock on hand</span><div style="margin-top:14px">' +
+      `<span class="stat"><b>${fmt(a.trueWaste)} ft</b><span>true waste as planned</span></span>` +
+      `<span class="stat"><b>${a.boardsPurchased}</b><span>pieces still to buy</span></span>` +
+      `<span class="stat"><b>${fmt(a.feetPurchased)} ft</b><span>purchased</span></span>` +
+      `<span class="stat"><b>${stock.totals.boardsFromStock}</b><span>pieces from the yard</span></span>` +
+      `<span class="stat"><b>${fmt(stock.totals.feetFromStock)} ft</b><span>from the yard</span></span>` +
+      '</div><p class="muted" style="margin:12px 0 0;font-size:12px">' +
+      'The length search above is deliberately stock-blind, so its recommendation and its waste ' +
+      'figure mean the same thing next week. These numbers re-pack that same recommendation ' +
+      'against the yard.</p></div>';
+  }
+  h += '</div>';
+
+  // --- the deliverable
+  if (stock) {
+    const list = sortedBuyList(stock.buyList);
+    const need = stock.buyList.reduce((s, p) => s + p.need, 0);
+    const buy = stock.buyList.reduce((s, p) => s + p.buy, 0);
+    h += '<div class="card"><h2>Order this <span class="hint">&mdash; netted against stock on hand. ' +
+      'Click a column to sort.</span></h2>' +
+      '<div class="tablewrap"><table>' +
+      '<tr><th>Category</th><th>Size</th>' + sortTh('length', 'Length') +
+      '<th class="num">If bought new</th><th class="num">Covered by stock</th>' +
+      sortTh('pieces', 'Buy') + sortTh('feet', 'Feet to buy') + '</tr>' +
+      list.map((p) => `<tr><td>${esc(p.category)}</td><td>${esc(p.size)}</td>` +
+        `<td class="num">${p.stockLength}&prime;</td>` +
+        `<td class="num">${p.need}</td><td class="num">${p.covered}</td>` +
+        `<td class="num${p.buy === 0 ? ' zero' : ''}">${p.buy}</td>` +
+        `<td class="num${p.buy === 0 ? ' zero' : ''}">${fmt(p.stockLength * p.buy)}</td></tr>`).join('') +
+      `<tr class="win"><td colspan="3">Total</td><td class="num">${need}</td>` +
+      `<td class="num">${need - buy}</td><td class="num">${buy} pieces</td>` +
+      `<td class="num">${fmt(stock.totals.asPlanned.feetPurchased)} ft</td></tr>` +
+      '</table></div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:12px">' +
+      '&ldquo;Covered by stock&rdquo; is the difference between the two plans, not a count of ' +
+      'boards drawn &mdash; on-hand pieces at other lengths absorb cuts, so the leftovers can ' +
+      'repack differently. The yard table below has the exact draws.</p>';
+  } else {
+  const list = sortedBuyList(r.purchaseList);
+  const totalPieces = r.purchaseList.reduce((s, p) => s + p.qty, 0);
+  h += '<div class="card"><h2>Order this <span class="hint">&mdash; every length and how many, all jobs combined. ' +
+    'Click a column to sort.</span></h2>' +
+    '<div class="tablewrap"><table>' +
+    '<tr><th>Category</th><th>Size</th>' + sortTh('length', 'Length') +
+    sortTh('pieces', 'Pieces') + sortTh('feet', 'Feet') + '</tr>' +
+    list.map((p) => `<tr><td>${esc(p.category)}</td><td>${esc(p.size)}</td>` +
+      `<td class="num">${p.stockLength}&prime;</td><td class="num">${p.qty}</td>` +
+      `<td class="num">${fmt(p.stockLength * p.qty)}</td></tr>`).join('') +
+    `<tr class="win"><td colspan="3">Total</td><td class="num">${totalPieces} pieces</td>` +
+    `<td class="num">${fmt(t.feetPurchased)} ft</td></tr>` +
+    '</table></div>';
+  }
+  h += '<div class="tablewrap" style="margin-top:12px"><table>' +
+    '<tr><th>Category</th><th class="num">Boards</th><th class="num">Feet</th>' +
+    '<th class="num">True waste</th><th class="num">Drops to stock</th></tr>' +
+    Object.entries(t.byCategory).map(([cat, c]) =>
+      `<tr><td>${esc(cat)}</td><td class="num">${c.boards}</td><td class="num">${fmt(c.feet)}</td>` +
+      `<td class="num">${fmt(c.waste)}</td><td class="num">${fmt(c.drops)}</td></tr>`).join('') +
+    '</table></div></div>';
+
+  // --- what shipping this batch does to the yard
+  if (stock) {
+    h += '<div class="card"><h2>What this does to your yard ' +
+      '<span class="hint">&mdash; one row per stock line these jobs actually draw from</span></h2>';
+    if (!stock.depletion.length) {
+      h += '<p class="muted">Nothing was drawn from stock &mdash; no on-hand length fits any ' +
+        'piece in this batch.</p>';
+    } else {
+      h += '<div class="tablewrap"><table>' +
+        '<tr><th>Item</th><th class="num">Length</th><th class="num">On hand</th>' +
+        '<th class="num">Used</th><th class="num">Left</th><th class="num">Reorder at</th></tr>' +
+        stock.depletion.map((d) =>
+          `<tr class="${d.belowThreshold ? 'low' : ''}"><td>${esc(d.item)}</td>` +
+          `<td class="num">${d.stockLength}&prime;</td><td class="num">${d.startQty}</td>` +
+          `<td class="num">${d.used}</td><td class="num">${d.remaining}</td>` +
+          `<td class="num">${d.threshold == null ? '&mdash;' : d.threshold}</td></tr>`).join('') +
+        '</table></div>';
+      // Thresholds are a SIGNAL, never an addition to the order: restocking the
+      // yard and covering these jobs are two different decisions, and folding
+      // them together would inflate every waste and feet figure on this page
+      // with material no job asked for.
+      const low = stock.depletion.filter((d) => d.belowThreshold);
+      if (low.length) {
+        h += '<p class="note" style="margin:12px 0 0">' +
+          `${low.length} stock line${low.length === 1 ? '' : 's'} end${low.length === 1 ? 's' : ''} ` +
+          'this batch below the reorder point. Nothing has been added to the order above &mdash; ' +
+          'restocking is a separate call.</p>';
+      }
+    }
+    h += '</div>';
+  }
+
+  // --- one section per product: each is an independent purchasing decision
+  for (const p of r.products) {
+    h += `<div class="card"><h2>${esc(p.size)} <span class="hint">&mdash; depth ${esc(p.depth || '?')} ` +
+      `&middot; ${p.pieces} pieces &middot; ${fmt(p.feet)} ft needed</span></h2>`;
+    if (!p.best) {
+      h += '<div class="note">No allowed length set can cut every piece of this product. ' +
+        'Widen its purchasable lengths, or check for a piece longer than the longest length ticked.</div></div>';
+      continue;
+    }
+    h += `<div class="big">Buy ${p.recommended} length${p.recommended === 1 ? '' : 's'}: ${lenList(p.best.lengthsUsed)}</div>` +
+      '<div style="margin-top:10px">' +
+      `<span class="stat"><b>${fmt(p.best.ijoistWaste)} ft</b><span>waste</span></span>` +
+      `<span class="stat"><b>${p.best.boardsPurchased}</b><span>pieces</span></span>` +
+      `<span class="stat"><b>${fmt(p.best.feetPurchased)} ft</b><span>purchased</span></span>` +
+      '</div>';
+    if (p.strategy === 'greedy') {
+      // Never let an approximate answer look exact.
+      h += '<div class="note" style="margin-top:12px">Searched by <strong>greedy selection</strong> ' +
+        'because this product\u2019s length pool is large. It builds the set one length at a time, ' +
+        'so it can miss a slightly better combination. Untick some lengths (the supplier set is ' +
+        '8) to get an exact search, which is also much faster.</div>';
+    }
+    if (p.suggestions && p.suggestions.length) {
+      h += '<ul class="sugg" style="margin-top:14px">' +
+        p.suggestions.map((s) => `<li class="${esc(s.kind)}">${esc(s.text)}</li>`).join('') + '</ul>';
+    }
+    h += '<h2 style="margin-top:18px">How many lengths is it worth buying?</h2>' +
+      '<div class="tablewrap"><table>' +
+      '<tr><th class="num">Lengths</th><th>Best set</th><th>Actually used</th>' +
+      '<th class="num">Waste</th><th class="num">Bought</th><th class="num">Pieces</th></tr>' +
+      p.curve.map((c) => {
+        if (!c.feasible) return `<tr><td class="num">${c.n}</td><td colspan="5" class="muted">no feasible plan</td></tr>`;
+        return `<tr class="${c.n === p.recommended ? 'win' : ''}"><td class="num">${c.n}</td>` +
+          `<td>${lenList(c.lengths)}</td><td>${lenList(c.lengthsUsed)}</td>` +
+          `<td class="num">${fmt(c.ijoistWaste)}</td><td class="num">${fmt(c.feetPurchased)}</td>` +
+          `<td class="num">${c.boardsPurchased}</td></tr>`;
+      }).join('') +
+      '</table></div></div>';
+  }
+
+  // --- the actual pieces, drawn the way the web app draws them
+  CutList.configure({
+    lvlThreshold: Number(document.getElementById('dropmin').value) || MENU.lvlDropMinFt,
+    esc,
+    ftLabel: (n) => (n == null || n === '' ? '—' : `${(Math.round(Number(n) * 100) / 100)}′`),
+  });
+  // With stock loaded, show the plan the shop will ACTUALLY cut — the second
+  // pass's boards, badged on-hand or purchase by the shared renderer. Showing
+  // the greenfield sheet next to a netted buy list would have the two halves of
+  // the page disagree about the same batch.
+  const sheet = stock ? stock.cutPlan : r.cutPlan;
+  h += '<div class="card"><h2>Cut list <span class="hint">&mdash; per-board diagrams, grouped by job &amp; material; ' +
+    'identical boards collapse to ×N' + (stock ? '; on-hand boards are marked' : '') + '</span></h2>' +
+    CutList.legend() +
+    sheet.map((j) => CutList.renderJob({
+      jobNumber: j.jobNumber, jobName: j.jobName, deliveryDate: j.deliveryDate,
+      // The shared renderer speaks committed-row field names; buildCutPlan emits
+      // the engine's. Translate here rather than renaming either side.
+      boards: j.groups.flatMap((g) => g.boards.map((bd) => ({
+        size: g.size, category: g.category, cutFrom: bd.cutFrom, stockLength: bd.stockLength,
+        cuts: bd.cuts.map((c) => ({ cutLabel: c.label, requiredLength: c.length })),
+      }))),
+    })).join('') + '</div>';
+
+  return h;
+}
+</script>
+</body>
+</html>

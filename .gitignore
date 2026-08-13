@@ -1,0 +1,30 @@
+node_modules/
+
+# Nothing here needs environment config — the planner has no database and no
+# secrets. This is a guard, not a requirement.
+.env
+.env.*
+
+*.log
+.DS_Store
+Thumbs.db
+
+# Real, UNSCRUBBED material summaries. The fixtures in test/ewp-fixtures/ have had
+# every company name, staff name, customer, address and phone number removed; a
+# raw export straight out of MiTek has none of that removed and must never be
+# committed. Keep real jobs outside the repo, or scrub them first.
+*-raw.csv
+*-unscrubbed.csv
+samples/
+
+# Working notes and the user guide — kept out of the public repo for now. Nothing in
+# here is needed to run or build the tool; the README carries everything a reader of
+# this repo needs. Anything referenced from committed files must therefore stand on
+# its own without them.
+docs/
+
+# Real MiTek exports carry customer names, addresses and phone numbers.
+# Only sanitized fixtures ("Sample Customer" etc.) belong in git — mirrors the
+# samples/batch-*-scrubbed.csv rule in the inventory app repo.
+test/plate-fixtures/batch-*.csv
+test/plate-fixtures/*-real.csv

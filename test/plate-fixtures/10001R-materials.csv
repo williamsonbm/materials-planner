@@ -1,0 +1,135 @@
+Invoice,Sample Truss Co,P.O. Box 0000,Anytown VA 00000 ,Business:  (555) 555-0100,,,
+Quote Date:,4/20/2026,Job Number:,10001R,,,,
+Order Date:,4/21/2026,Product:,Roof,,,,
+Delivered Date:,,Customer P.O. #:,,,,,
+Invoiced Date:,,Sales Rep:,Sample Person,,,,
+Estimator:,,Sales Area:,,,,,
+Designer,Sample Person,Customer ID:,CASH,,,,
+,,,,,,,
+Delivery Date:,5/21/2026,,,,,,
+Valued Customer,,,,,,,
+,,,,,,,
+  ,S,,,,,,
+O,,,,,,,
+L,,,,,,,
+D ,,,,,,,
+,,,,,,,
+T,,,,,,,
+O,,,,,,,
+,,,,,,,
+Sample County VA ,S,,,,,,
+H,,,,,,,
+I,,,,,,,
+P,,,,,,,
+,,,,,,,
+T,,,,,,,
+O,,,,,,,
+Address:,,Lot:,,Subdiv:,,,
+Job Name:,Sample Customer,Delivery Area,,,,,
+Delivery Notes: ,,,,,,,
+Notes: ,,,,,,,
+LUMBER SUMMARY,,,,,,,
+SKU,Qty,LENGTH,MATERIAL NAME,USAGE,SQ. FEET,LINEAL FEET,BOARD FOOT
+,,,False,,,,
+,7,8-00-00,2x4 SP 2400F 2.0E,Regular,,56,37.31
+,7,10-00-00,2x4 SP 2400F 2.0E,Regular,,70,46.69
+,14,,,,,126,84
+,,,False,,,,
+,7,6-00-00,2x4 SP DSS,Regular,,42,28
+,18,8-00-00,2x4 SP DSS,Regular,,144,95.94
+,34,10-00-00,2x4 SP DSS,Regular,,340,226.78
+,39,12-00-00,2x4 SP DSS,Regular,,468,312
+,54,14-00-00,2x4 SP DSS,Regular,,756,503.82
+,43,16-00-00,2x4 SP DSS,Regular,,688,458.81
+,195,,,,,2438,1625.35
+,,,False,,,,
+,12,6-00-00,2x4 SP No.1,Regular,,72,48
+,13,10-00-00,2x4 SP No.1,Regular,,130,86.71
+,17,12-00-00,2x4 SP No.1,Regular,,204,136
+,1,16-00-00,2x4 SP No.1,Regular,,16,10.67
+,43,,,,,422,281.38
+,,,False,,,,
+,18,1-00-00,2x4 SP No.2,Regular,,18,12.06
+,124,2-00-00,2x4 SP No.2,Regular,,248,164.92
+,61,3-00-00,2x4 SP No.2,Regular,,183,122
+,90,4-00-00,2x4 SP No.2,Regular,,360,240.3
+,78,5-00-00,2x4 SP No.2,Regular,,390,259.74
+,169,6-00-00,2x4 SP No.2,Regular,,1014,676
+,58,7-00-00,2x4 SP No.2,Regular,,406,270.86
+,71,8-00-00,2x4 SP No.2,Regular,,568,378.43
+,131,10-00-00,2x4 SP No.2,Regular,,1310,873.77
+,253,12-00-00,2x4 SP No.2,Regular,,3036,2024
+,41,14-00-00,2x4 SP No.2,Regular,,574,382.53
+,23,16-00-00,2x4 SP No.2,Regular,,368,245.41
+,4,20-00-00,2x4 SP No.2,Regular,,80,53.32
+,1121,,,,,8555,5703.34
+,,,False,,,,
+,22,12-00-00,2x6 SP DSS,Regular,,264,264
+,22,,,,,264,264
+,,,False,,,,
+,37,2-00-00,2x6 SP No.2,Regular,,74,74
+,1,10-00-00,2x6 SP No.2,Regular,,10,10
+,2,12-00-00,2x6 SP No.2,Regular,,24,24
+,1,14-00-00,2x6 SP No.2,Regular,,14,14
+,1,16-00-00,2x6 SP No.2,Regular,,16,16
+,42,,,,,138,138
+,1437,,,,0,11943,8096.07
+PLATE SUMMARY,,,,,,,
+SKU,QUANTITY,SIZE-GAUGE,WEIGHT,SQ. INCHES,,,
+,,,,,,,
+,930,MT20  1.5x4,64.18,5580,,,
+,214,MT20  2x4,19.69,1712,,,
+,44,MT20  2x6,6.07,528,,,
+,632,MT20  3x4,87.23,7584,,,
+,200,MT20  3x6,41.41,3600,,,
+,60,MT20  3x8,16.56,1440,,,
+,4,MT20  3x10,1.38,120,,,
+,206,MT20  4x4,37.91,3296,,,
+,94,MT20  4x5,21.62,1880,,,
+,88,MT20  4x6,24.29,2112,,,
+,24,MT20  4x7,7.73,672,,,
+,112,MT20  4x10,51.53,4480,,,
+,44,MT20  5x5,12.65,1100,,,
+,72,MT20  5x6,24.84,2160,,,
+,52,MT20  5x7,20.93,1820,,,
+,16,MT20  5x8,7.36,640,,,
+,34,MT20  6x6,14.08,1224,,,
+,34,MT20  6x8,18.77,1632,,,
+,16,MT20  7x8,10.31,896,,,
+,4,MT20  8x8,2.94,256,,,
+,2880,,491.5,42732,,,
+,,,,,,,
+,2,MT20HS  7x8,1.29,112,,,
+,2,,1.29,112,,,
+,2882,,492.79,42844,,,
+Hangers,,,,,,,
+,,,,,,,
+QTY,TYPE,SIZE,LENGTH,,NOTE,,
+9,Hanger,HUS26,,,,,
+10,Hanger,LU24,,,,,
+6,Hanger,NAILED,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+"Sample Truss Co - 123 Example Rd , Anytown Va 00000 Phone: (555) 555-0100",,,,,,,
+Sample Person,Invoice -  Date: 5/4/2026  Page: 1 of 1,5/4/2026 ,,,,,
