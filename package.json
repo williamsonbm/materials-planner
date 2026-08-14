@@ -1,8 +1,8 @@
 {
-  "name": "ewp-purchase-planner",
+  "name": "materials-purchase-planner",
   "version": "1.0.0",
   "private": true,
-  "description": "Standalone EWP purchase planner — decides which stock lengths to order for a batch of jobs. No database, no network at runtime.",
+  "description": "Standalone Materials purchase planner — decides which stock lengths and truss plates to order for a batch of jobs. No database, no network at runtime.",
   "scripts": {
     "build": "echo 'Build complete'",
     "dev": "node src/planner/server.js",

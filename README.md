@@ -18,8 +18,8 @@ npm start            # → http://localhost:3000
 
 ```powershell
 winget install OpenJS.NodeJS.LTS          # skip if `node -v` already prints v18+
-git clone https://github.com/williamsonbm/ewp-planner.git
-cd ewp-planner
+git clone https://github.com/williamsonbm/materials-planner.git
+cd materials-planner
 npm install                                # once. Needs internet; nothing after this does.
 npm start
 ```
