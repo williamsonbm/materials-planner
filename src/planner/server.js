@@ -407,7 +407,8 @@ app.post('/api/plan', (req, res) => {
 
 if (require.main === module) {
   app.listen(PORT, HOST, () => {
-    console.log(`EWP purchase planner  →  http://${HOST}:${PORT}`);
+    const url = HOST === '0.0.0.0' ? `http://localhost:${PORT}` : `http://${HOST}:${PORT}`;
+    console.log(`Materials purchase planner  →  ${url}`);
     console.log('No database, no .env, localhost only. Ctrl-C to stop.');
   });
 }
