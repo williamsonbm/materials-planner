@@ -28,9 +28,9 @@
   *{box-sizing:border-box}
   body{background:var(--bg);color:var(--ink);margin:0;padding:24px;
     font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-  h1{font:600 22px/1.25 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-  .sub{color:var(--muted);margin:4px 0 0}
+  .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  h1{font:600 20px/1.25 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0}
   a{color:var(--accent)}
   .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
   .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
@@ -43,15 +43,20 @@
   .nav a.on{background:var(--accent);color:#fff}
   .nav a:not(.on):hover{background:var(--surface-2);color:var(--ink)}
 
-  .zones{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  .zones{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
   @media(max-width:760px){.zones{grid-template-columns:1fr}}
-  .zone{background:var(--card);border:2px dashed var(--line-strong);border-radius:8px;
-    padding:20px;text-align:center;cursor:pointer;transition:.12s}
+  .zone{background:var(--card);border:2px dashed var(--line-strong);border-radius:10px;
+    padding:20px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s}
   .zone:hover,.zone.over{border-color:var(--accent);background:var(--info-bg)}
-  .zone h3{margin:0 0 4px;font-size:15px}
-  .zone p{margin:0;color:var(--muted);font-size:13px}
-  .files{margin-top:10px;text-align:left;font-size:12.5px;color:var(--muted)}
-  .files div{padding:1px 0}
+  .zone h3{margin:0 0 4px;font-size:15px;font-weight:600;color:var(--ink)}
+  .zone .sub-hint,.zone p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}
+  .badge-opt{font-size:11.5px;font-weight:400;color:var(--muted);vertical-align:middle;margin-left:4px}
+  .files{margin-top:12px;text-align:left;font-size:12.5px}
+  .files > div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
+    border-bottom:1px solid var(--line);color:var(--ink)}
+  .files > div:last-child{border-bottom:0}
+  .rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
+  .rm:hover{color:#c0392b}
 
   button{font:inherit;padding:9px 20px;border-radius:6px;border:1px solid var(--accent);
     background:var(--accent);color:#fff;cursor:pointer}
@@ -68,15 +73,16 @@
   th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
   th{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
     text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
-  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-  /* Fixed layout so NEED / HAVE / BUY line up down the table instead of being
-     sized by whichever row has the longest text. */
+  /* Fixed layout with left-aligned metric columns leaving generous space for ORDER AS */
   table.buy{table-layout:fixed}
-  table.buy col.c-sku{width:auto}
-  table.buy col.c-num{width:96px}
-  table.buy col.c-order{width:320px}
-  table.buy col.c-inc{width:92px}
+  table.buy col.c-sku{width:220px}
+  table.buy col.c-need{width:80px}
+  table.buy col.c-have{width:80px}
+  table.buy col.c-buy{width:190px}
+  table.buy col.c-order{width:auto}
+  table.buy col.c-inc{width:90px}
   tr.buy td:first-child{border-left:3px solid var(--warn)}
   tr.jobs td{background:var(--surface-2);padding:12px 14px}
   .drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
@@ -88,7 +94,7 @@
   .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px}
   .opt{display:block;font-size:13px}
   .opt.best{font-weight:600}
-  .spare{color:var(--muted);font-size:12px}
+  .spare{color:var(--muted);font-size:12px;white-space:nowrap}
   .chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
     letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:2px;
     border:1px solid currentColor;margin-left:6px}
@@ -106,22 +112,20 @@
 <div class="wrap">
 
   <div>
-    <nav class="nav"><a href="/">EWP</a><a href="/plates" class="on">Plates</a></nav>
-    <h1 style="margin-top:14px">Plates — what do we need to buy?</h1>
-    <p class="sub">Drop in the material summaries for the jobs you're planning, plus the plate
-      stock export from the inventory app. Nothing is saved and nothing is committed —
-      close the tab and it's gone.</p>
+    <nav class="nav" aria-label="Planner selector"><a href="/">EWP</a><a href="/plates" class="on">Plates</a></nav>
+    <h1 style="margin-top:14px">Truss Plate Planner</h1>
+    <p class="sub">Multi-job plate demand consolidated and converted to orderable units.</p>
   </div>
 
   <div class="zones">
     <div class="zone" id="zJobs">
       <h3>Material summaries</h3>
-      <p>Drop several, or click to choose. One per job.</p>
+      <p class="sub-hint">Drop several, or click to choose. One per job.</p>
       <div class="files" id="fJobs"></div>
     </div>
     <div class="zone" id="zStock">
-      <h3>Plate stock CSV</h3>
-      <p>Optional. Stock&nbsp;→&nbsp;Plates&nbsp;→&nbsp;Export CSV.</p>
+      <h3>Plate stock CSV <span class="badge-opt">Optional</span></h3>
+      <p class="sub-hint">Stock&nbsp;&rarr;&nbsp;Plates&nbsp;&rarr;&nbsp;Export CSV.</p>
       <div class="files" id="fStock"></div>
     </div>
   </div>
@@ -148,8 +152,12 @@ const n = (v) => Number(v || 0).toLocaleString();
 const plural = (w, k) => k === 1 ? w : (w === 'box' ? 'boxes' : w + 's');
 
 function paint() {
-  $('#fJobs').innerHTML = jobFiles.map((f) => '<div>· ' + esc(f.name) + '</div>').join('');
-  $('#fStock').innerHTML = stockFile ? '<div>· ' + esc(stockFile.name) + '</div>' : '';
+  $('#fJobs').innerHTML = jobFiles.map((f, i) =>
+    `<div><span>${esc(f.name)}</span><button class="rm" data-i="${i}" title="remove">&times;</button></div>`
+  ).join('');
+  $('#fStock').innerHTML = stockFile
+    ? `<div><span>${esc(stockFile.name)}</span><button class="rm" id="rmStock" title="remove">&times;</button></div>`
+    : '';
   $('#go').disabled = jobFiles.length === 0;
 }
 
@@ -176,8 +184,26 @@ function wire(zoneId, onFiles) {
 }
 wire('#zJobs', (fs) => { jobFiles = jobFiles.concat(fs); paint(); });
 wire('#zStock', (fs) => { if (fs[0]) stockFile = fs[0]; paint(); });
-$('#zJobs').addEventListener('click', () => $('#pick').click());
-$('#zStock').addEventListener('click', () => $('#pickStock').click());
+$('#zJobs').addEventListener('click', (e) => {
+  const rm = e.target.closest('.rm');
+  if (rm) {
+    e.stopPropagation();
+    jobFiles.splice(Number(rm.dataset.i), 1);
+    paint();
+    return;
+  }
+  $('#pick').click();
+});
+$('#zStock').addEventListener('click', (e) => {
+  const rm = e.target.closest('.rm');
+  if (rm) {
+    e.stopPropagation();
+    stockFile = null;
+    paint();
+    return;
+  }
+  $('#pickStock').click();
+});
 $('#pick').addEventListener('change', (e) =>
   readFiles([...e.target.files], (fs) => { jobFiles = jobFiles.concat(fs); paint(); }));
 $('#pickStock').addEventListener('change', (e) =>
@@ -264,19 +290,19 @@ function render(d) {
     h += '<div class="note ok">Nothing to buy — stock covers every plate in these jobs.</div>';
   } else {
     h += '<div class="tw"><table class="buy">' +
-      '<colgroup><col class="c-sku"><col class="c-num"><col class="c-num">' +
-      '<col class="c-num"><col class="c-order"><col class="c-inc"></colgroup>' +
-      '<thead><tr><th>SKU</th><th class="n">Need</th>' +
-      '<th class="n">Have</th><th class="n">Buy (eaches)</th><th>Order as</th>' +
+      '<colgroup><col class="c-sku"><col class="c-need"><col class="c-have">' +
+      '<col class="c-buy"><col class="c-order"><col class="c-inc"></colgroup>' +
+      '<thead><tr><th>SKU</th><th>Need</th>' +
+      '<th>Have</th><th>Buy (eaches)</th><th>Order as</th>' +
       '<th class="n">Incoming</th></tr></thead><tbody>';
     buy.forEach((r, i) => {
       h += '<tr class="buy"><td><span class="caret" data-i="' + i + '">▸</span>' + esc(r.sku) +
         (!r.inStockFile ? '<span class="chip warn">not in stock file</span>' : '') +
         '</td>' +
-        '<td class="n">' + n(r.needEaches) + '</td>' +
-        '<td class="n"' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
+        '<td>' + n(r.needEaches) + '</td>' +
+        '<td' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
           n(r.availableEaches) + '</td>' +
-        '<td class="n"><b>' + n(r.shortEaches) + '</b>' +
+        '<td><b>' + n(r.shortEaches) + '</b>' +
           (r.shortFromLedger > 0
             ? '<br><span class="spare" title="This SKU is already below zero in the stock file, so '
               + 'the buy figure covers that existing shortfall as well as these jobs. Count it '

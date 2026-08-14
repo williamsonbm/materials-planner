@@ -56,19 +56,19 @@ const { normalizeSize } = require('./normalizeSize.js');
 //   RimBoard — 12' only; a 24' need is TWO 12' boards, never one 24' cut in half.
 //   LVL      — 48' only; bought full and cut, the offcut returns to stock per the drop rule.
 const DEFAULT_PURCHASE_LENGTHS_BY_CAT = {
-  "I-Joist":  [48, 44, 40, 36, 34, 32, 30, 28],
+  "I-Joist":  [48, 44, 40, 36, 32, 28, 24, 22, 20, 18, 16, 14, 12, 10, 8],
   "RimBoard": [12],
   "LVL":      [48],
 };
 // Every buyable length across categories — the ceiling for "physically makeable" (maxKnownStock).
 const ALL_PURCHASE_LENGTHS = [...new Set(Object.values(DEFAULT_PURCHASE_LENGTHS_BY_CAT).flat())];
 // The full menu of lengths a "Board sizes" preset may allow for I-Joist, per depth:
-// 12'–48' in 2' increments (descending). This is wider than the default supplier
+// 8'–48' in 2' increments (descending). This is wider than the default supplier
 // set above — a preset can opt into any of these (e.g. a 20' or 38'); the engine
 // only buys a length a preset actually allows. Drives the editor grid + validation
 // (server reads it from here) and is the intersect base for an active preset.
 const IJOIST_LENGTH_MENU = [];
-for (let l = 48; l >= 12; l -= 2) IJOIST_LENGTH_MENU.push(l);
+for (let l = 48; l >= 8; l -= 2) IJOIST_LENGTH_MENU.push(l);
 // Reset per call from opts.purchaseLengths: [] forces no-buy (on-hand-only mode); an explicit
 // non-empty list overrides every category (tests / future config); null = per-category defaults.
 let PURCHASE_LENGTHS_OVERRIDE = null;
