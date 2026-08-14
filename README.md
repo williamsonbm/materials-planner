@@ -1,48 +1,42 @@
-# EWP Purchase Planner
+# Materials Purchase Planner
 
-Decides **which stock lengths to order** for a batch of EWP jobs, and **how many of each**.
+Decides **which stock lengths to order** for a batch of EWP jobs and **how many truss plates to buy** across multiple truss designs.
 
 ```bash
 npm install          # one dependency: express
-npm run planner      # → http://127.0.0.1:5178
+npm start            # → http://localhost:3000
 ```
 
-Drop in one or more MiTek "Material Summary" CSVs, set how many distinct lengths you're
-willing to put on a PO, and it reports the lengths to buy, the quantities, and a per-board
-cut list. Add a stock list and it nets the order against what's already on the yard.
+- **EWP Planner (`/`)**: Drop in one or more MiTek "Material Summary" CSVs, set how many distinct lengths you're willing to put on a PO, and it reports the lengths to buy, the quantities, and a per-board cut list. Add an EWP stock list to net the order against what's already in the yard.
+- **Truss Plate Planner (`/plates`)**: Drop in material summary CSVs along with an inventory plate stock export. It calculates total plate shortfall across all jobs and rounds up to vendor-pack or pallet order quantities.
 
-**No database, no `.env`, no network at runtime.** It binds `127.0.0.1` only. Once
-`npm install` has run, it works fully disconnected.
+**No database, no `.env`, no external network at runtime.** Once `npm install` has run, it works fully disconnected.
 
-### Running it on Windows 11
+---
+
+### Running it locally (Windows 11 / macOS / Linux)
 
 ```powershell
 winget install OpenJS.NodeJS.LTS          # skip if `node -v` already prints v18+
 git clone https://github.com/williamsonbm/ewp-planner.git
 cd ewp-planner
 npm install                                # once. Needs internet; nothing after this does.
-npm run planner
+npm start
 ```
 
-Then open **http://127.0.0.1:5178** — it doesn't launch a browser for you. The PowerShell
-window *is* the server; Ctrl-C stops it. Next time, only the last two lines are needed.
-
-Clone over **HTTPS** as above unless you've already put an SSH key on that machine; or just
-download the ZIP from GitHub and unzip it — `npm install` and `npm run planner` work the same
-in the extracted folder. No firewall prompt should appear, because the server never listens
-on anything but loopback.
+Then open **http://localhost:3000** (or `http://127.0.0.1:3000`) in your browser. The terminal window runs the local server; press `Ctrl-C` to stop it.
 
 ---
 
-## The question it answers
+## 1. EWP Purchase Planner
 
-The cut optimizer in the web app asks *"given these allowed stock lengths, how do I cut
-them?"*. This asks the inverse:
+### The question it answers
+
+The cut optimizer asks *"given these allowed stock lengths, how do I cut them?"*. The EWP planner asks the inverse:
 
 > *"I'll order at most N distinct stock lengths for these jobs — which N do I buy?"*
 
-It also answers the question behind that one — **how many lengths are worth buying at all**
-— by running N = 1…max and showing where the waste curve flattens:
+It also answers the question behind that one — **how many lengths are worth buying at all** — by running N = 1…max and showing where the waste curve flattens:
 
 | Lengths allowed | Best set | I-Joist waste |
 |---|---|---|
@@ -50,106 +44,62 @@ It also answers the question behind that one — **how many lengths are worth bu
 | **2** | **36′, 32′** | **0 ft** |
 | 3–5 | 36′, 32′, 28′… | 0 ft |
 
-For that job (`33844J`), lengths 3 through 5 buy you nothing. Two lengths is the answer.
+For that job (`33844J`), lengths 3 through 5 buy you nothing. Two lengths is the optimal answer.
 
-## Waste vs drops — read this before judging a number
+### Waste vs drops
 
-- **True waste** — material you lose.
-- **Recoverable drops** — LVL offcuts at or above the drop threshold (default 8′) that go
-  back on the rack. The engine has always costed these at **zero**.
+- **True waste** — material lost as unusable offcuts.
+- **Recoverable drops** — LVL offcuts at or above the drop threshold (default 8′) that go back on the rack. The engine costs these at **zero**.
 
-This distinction is not academic. Job `33844J` shows **144 ft of remainder** — every foot of
-it LVL drops, with the I-Joist plan an exact fit at **0 ft of waste**. Reporting raw
-remainder made a perfect plan look broken. If your shop does *not* reuse drops, raise the
-threshold in the UI and they reclassify as true waste.
+If your shop does *not* reuse drops, raise the drop threshold in the UI to reclassify them as true waste.
 
-## Stock on hand — optional second CSV
+### Stock on hand (Optional second CSV)
 
-Drop a stock list in the second zone and the order is netted against the yard: the buy list
-gains **if bought new / covered by stock / buy**, and a new card shows what shipping the
-batch does to each stock line, flagging any that end below their reorder point.
+Drop an inventory stock list in the second zone and the order is netted against the yard:
+- The buy list gains **if bought new / covered by stock / buy**.
+- A summary card displays what shipping the batch does to each stock line, flagging any that end below their reorder threshold.
+- Quantity comes from **`available`** (on hand minus committed) when available in the CSV.
 
-Any CSV with `item`, `span` and a quantity column works — columns are found by name, so a
-wide export (`item,span,depth,on_hand,committed,available,incoming,threshold,flag`) and a
-hand-written `item,span,qty,threshold` both load. Quantity comes from **`available`** (on
-hand minus committed) when the file has it, so boards already promised to another job aren't
-offered twice. `incoming` is ignored — it may not land before the job ships.
+**The length search itself stays stock-blind.** It answers "which lengths should I put on a PO", and that answer shouldn't move because the yard was full the week you asked. Stock is applied *after*, by re-packing the recommendation with the yard available.
 
-**The length search itself stays stock-blind.** It answers "which lengths should I put on a
-PO", and that answer shouldn't move because the yard was full the week you asked. Stock is
-applied *after*, by re-packing the recommendation with the yard available — which is also
-why the cut sheet can use an on-hand 28′ board the supplier doesn't even sell.
+### Pools are per PRODUCT, not per depth
 
-Both waste figures are shown: greenfield (the number the search ranked on, comparable
-between runs) and as-planned (what the batch really costs). Drawing an odd on-hand length
-often trades a little waste for a lot less spend, and that trade should be visible.
+`11 7/8" PJI-40` and `11 7/8" TJI 560` share a depth but are different SKUs that can be stocked in different lengths. Purchasable lengths are set **per product**, each product gets its own length budget, and each gets its own recommendation.
 
-Below-threshold lines are **flagged, never ordered**. Restocking the yard and covering these
-jobs are separate decisions.
+---
 
-## Pools are per PRODUCT, not per depth
+## 2. Truss Plate Planner (`/plates`)
 
-`11 7/8" PJI-40` and `11 7/8" TJI 560` share a depth but are different SKUs that can be
-stocked in different lengths. So purchasable lengths are set **per product**, each product
-gets its own length budget, and each gets its own recommendation. Drop your CSVs in and the
-pool editor fills itself with exactly the products in the batch.
+The Plate Planner consolidates plate requirements across all jobs and determines purchase quantities:
+- Aggregates plate demand across all dropped material summary CSVs.
+- Compares demand against on-hand / available inventory.
+- Converts shortfall into orderable vendor units (boxes, banded packs, pallets) using standard pack factors.
+- Provides interactive drill-down showing exactly which jobs and quantities contribute to each plate SKU's demand.
 
-This works because the problem **separates**: the engine builds one cut group per
-product and never shares a board between groups (a 16″ board cannot hold an 11-7/8 cut).
-Measured — two depths optimized together produce 26 + 8 = **34 ft**, exactly their separate
-totals, with byte-identical boards.
+---
 
-## Speed
-
-Runtime scales with jobs × products × pool size × length cap. Four jobs on the supplier set
-(8 lengths) at a cap of 4 is about **40 seconds**.
-
-Ticking **all** takes the pool from 8 lengths to 19, which is 16,663 combinations instead of
-218. Above 400 combinations the search switches from exhaustive to **greedy
-forward-selection** — grow the set one length at a time — which is ~95 evaluations instead
-of 16,663. Greedy is a heuristic and can give up a little waste, so the UI says when it was
-used and how to get an exact search.
-
-Use the supplier set for real ordering. Use "all" as a diagnostic: *"would a 38-footer save
-enough to be worth asking the supplier for?"*
-
-## Layout
+## Project Structure
 
 ```
-src/planner/     server.js, planner.html   — the tool
-src/ewp/         optimizeCuts.js           — the packing engine
-                 selectStockLengths.js     — the search over length sets
-                 applyStock.js             — nets the plan against on-hand stock
-                 readStockCsv.js           — stock CSV → engine inventory items
-                 cutListModel.js           — board grouping (shared with the browser)
-                 inventoryImpact.js        — stock depletion report
+src/planner/     server.js, planner.html, plates.html   — local server and UI pages
+src/ewp/         optimizeCuts.js                       — EWP packing engine
+                 selectStockLengths.js                 — search over length sets
+                 applyStock.js                         — nets EWP plan against on-hand stock
+                 readStockCsv.js                       — stock CSV → engine inventory items
+                 cutListModel.js                       — board grouping
+                 inventoryImpact.js                    — stock depletion report
                  parseCsv.js, extractDepth.js, normalizeSize.js, dbAdapters.js
-public/          cutList.js, cutList.css   — per-board cut diagrams
-test/            four suites; npm test
+src/plates/      planPlates.js                         — plate demand aggregation and shortfall calculator
+                 readPlateStockCsv.js                  — plate stock CSV parser
+                 parsePlateSummary.js                  — MiTek plate summary parser
+                 packFactors.json                      — packaging conversions (boxes, packs, pallets)
+public/          cutList.js, cutList.css               — per-board cut diagrams
+test/            test suites (run with `npm test`)
 ```
 
-`optimizeCuts.js` and its helpers are ported from the hanger-web-app EWP engine. Keep them
-in step deliberately — the packing behaviour is regression-locked over there.
+## Running Tests
 
-Two rules to know before touching the stock path. **The length search stays greenfield** —
-stock is applied to the lengths it already chose, never fed into the ranking, or reported
-waste becomes stock-dependent and two runs a week apart stop being comparable. And **real
-stock is merged *with* the zero-qty inventory stubs, never substituted for them** — a size
-with no stock row at all trips the engine's `no_inventory_match` pre-flight. Both are
-commented at length in [`src/ewp/applyStock.js`](src/ewp/applyStock.js).
-
-## Test fixtures are scrubbed
-
-`test/ewp-fixtures/*.csv` are real job structures with **all identifying information
-removed** — company name, staff names, customer businesses, street addresses, phone numbers,
-and job names are replaced or blanked. Only the material rows (product, quantity, length,
-label), job numbers and dates are real, because those are what the tests assert on.
-
-**Never commit a raw MiTek export.** `.gitignore` guards `*-raw.csv` and `*-unscrubbed.csv`
-and ignores `samples/` wholesale, but that is a safety net, not a substitute for checking.
-
-**Naming, for anything added from here on.** New job material CSVs take the
-**`-scrubbed.csv`** suffix (`34500J-materials-scrubbed.csv`) to mark them as reviewed and
-safe to commit. Wholly fabricated files take **`-synthetic.csv`** instead — real-but-cleaned
-and invented are different things and the filename should say which. The four fixtures above
-predate the convention and keep their names.
+```bash
+npm test
+```
+All unit and integration tests run natively with the Node.js test runner (`node --test`).
