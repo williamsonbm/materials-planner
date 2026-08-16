@@ -43,21 +43,30 @@ test('skuKey collapses the spacing/case/punctuation variants that really occur',
   assert.notStrictEqual(skuKey('MT20 3x3'), skuKey('MT20 3x4'));
 });
 
-test('the 18-gauge family folds to one key, matching the app plate_canon()', () => {
-  // Four spellings of the same physical plate circulate; MT18AHS is current and
-  // older jobs carry the older names. Without this fold an old job asking for
-  // "M18AHS 8x10" finds no stock row for the MT18AHS 8x10 on the shelf and the
-  // planner reports a full buy for plates already owned. Seen for real on
-  // 2026-08-13 against a live export.
-  const canonical = skuKey('MT18AHS 8x10');
-  for (const variant of ['M18AHS 8x10', 'M18HS 8x10', 'MT18HS 8x10', 'm18ahs  8X10']) {
-    assert.strictEqual(skuKey(variant), canonical, `${variant} must fold to MT18AHS`);
+test('the M/MT prefix folds, but MT18HS and MT18AHS stay separate plates', () => {
+  // The M/MT prefix is cosmetic — MiTek's own literature spells it both ways —
+  // so an old job asking for "M18AHS 8x10" must find the MT18AHS 8x10 on the
+  // shelf, or the planner reports a full buy for plates already owned.
+  const ahs = skuKey('MT18AHS 8x10');
+  for (const variant of ['M18AHS 8x10', 'm18ahs  8X10']) {
+    assert.strictEqual(skuKey(variant), ahs, `${variant} must fold to MT18AHS`);
   }
-  // M18SHS is "18S HS" — a DIFFERENT plate. The A? cannot swallow the S, and it
-  // must stay that way or two unrelated plates merge into one stock figure.
-  assert.notStrictEqual(skuKey('M18SHS 8x10'), canonical);
+  const hs = skuKey('MT18HS 8x10');
+  assert.strictEqual(skuKey('M18HS 8x10'), hs, 'M18HS must fold to MT18HS');
+
+  // ── The regression this test exists for. ──
+  // MT18HS and MT18AHS are DIFFERENT PLATES (ICC-ES ESR-1988): same 18-ga HSLAS
+  // Gr 60 steel, but 8 vs 6 teeth/in² and different design values throughout.
+  // An earlier rule made the A optional and merged them, crediting demand for
+  // one against stock of the other. They must never share a key again.
+  assert.notStrictEqual(hs, ahs, 'MT18HS must NOT fold into MT18AHS');
+
+  // M18SHS is "18S HS" — different again (Gr 80 SS). Matches neither pattern.
+  assert.notStrictEqual(skuKey('M18SHS 8x10'), ahs);
+  assert.notStrictEqual(skuKey('M18SHS 8x10'), hs);
   // Nothing outside the 18-gauge family is touched.
   assert.strictEqual(skuKey('MT20 3x4'), 'MT203X4');
+  assert.strictEqual(skuKey('MT20HS 6x10'), 'MT20HS6X10');
 });
 
 test('an old-spelling job line finds its current-spelling stock row', () => {
