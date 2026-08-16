@@ -51,20 +51,32 @@ const COUNTED_COLS = ['last_counted', 'counted_at', 'last_count'];
 
 const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '_');
 
-// Canonical spelling of the 18-gauge high-strength family. PORTED VERBATIM from
-// plate_canon() in the app's sql/016_plate_mt18ahs_reconcile.sql:
+// Canonical spelling of the 18-gauge high-strength plates. Ported from
+// plate_canon() in the app's sql/, now matching its NARROWED form
+// (sql/019_plate_unmerge_mt18hs.sql, 2026-08-16).
 //
-//   regexp_replace($1, '^MT?18A?HS', 'MT18AHS', 'i')
+// ── MT18HS and MT18AHS are DIFFERENT PLATES. Do not merge them. ──
 //
-// Four spellings of the same physical plate are in circulation — M18HS, M18AHS,
-// MT18HS, MT18AHS — because MT18AHS is the current name and older jobs' material
-// summaries carry the older ones. Without this fold, an old job asking for
-// "M18AHS 8x10" finds no stock row for the "MT18AHS 8x10" sitting on the shelf
-// and the planner reports a full buy for plates you already own.
+// The earlier version of this function used one rule, '^MT?18A?HS' -> MT18AHS,
+// in which the A was OPTIONAL — so MT18HS collapsed into MT18AHS. That was
+// wrong. Per ICC-ES ESR-1988 (rev. Aug 2026) they are separate MiTek products:
+// same 18-ga HSLAS Gr 60 steel, but MT18HS has 8 teeth/in² and M18AHS has 6,
+// and every published lateral-resistance, tension and shear value differs.
+// Merging them credits demand for one plate against stock of the other.
 //
-// Deliberately does NOT match M18SHS — that is "18S HS", a different plate, and
-// the A? in the pattern cannot swallow the S. Keep it that way.
-const plateCanon = (s) => String(s || '').replace(/^MT?18A?HS/i, 'MT18AHS');
+// What DOES fold is the M/MT prefix, which is purely cosmetic — MiTek's own
+// literature spells it both ways. So:
+//
+//   M18AHS, MT18AHS -> MT18AHS
+//   M18HS,  MT18HS  -> MT18HS      (separate identity)
+//   M18SHS          -> untouched   (Gr 80 SS — a different steel again)
+//   MT20, MT20HS    -> untouched
+//
+// The two patterns are mutually exclusive (one needs an A where the other needs
+// an H), so order is not load-bearing — AHS is tried first as the clearer read.
+const plateCanon = (s) => String(s || '')
+  .replace(/^MT?18AHS/i, 'MT18AHS')
+  .replace(/^MT?18HS/i, 'MT18HS');
 
 // Match key = plate_canon() then norm(), the same two-step the app's SQL applies
 // (sku_norm is a STORED generated column over norm(plate_canon(sku_display))).

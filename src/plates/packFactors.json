@@ -120,6 +120,22 @@
   "pallet_eaches": null
  },
  {
+  "sku": "MT18HS 3x10",
+  "product_line": "MT18HS",
+  "size": "3x10",
+  "eaches_per_unit": 128,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
+  "sku": "MT18HS 10x10",
+  "product_line": "MT18HS",
+  "size": "10x10",
+  "eaches_per_unit": 48,
+  "unit_label": "box",
+  "pallet_eaches": null
+ },
+ {
   "sku": "MT20 3x4",
   "product_line": "MT20-BAND",
   "size": "3x4",
