@@ -31,6 +31,8 @@ const {
 } = require('../ewp/optimizeCuts.js');
 const { planPlates } = require('../plates/planPlates.js');
 const { parsePlateStockCsv, looksLikePlateStockCsv } = require('../plates/readPlateStockCsv.js');
+const { planHangers } = require('../hangers/planHangers.js');
+const { parseHangerStockCsv, looksLikeHangerStockCsv } = require('../hangers/readHangerStockCsv.js');
 
 const PORT = Number(process.env.PORT || process.env.PLANNER_PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -129,6 +131,59 @@ app.post('/api/plates/plan', (req, res) => {
   if (!plan.jobs.length) {
     return res.status(400).json({
       ok: false, error: 'No usable plate material summaries found.', rejected: plan.rejected,
+    });
+  }
+
+  res.json({
+    ok: true,
+    ...plan,
+    rerouted,
+    stockFileName: stockFile ? stockFile.name : null,
+    stockError,
+  });
+});
+
+// ── HANGERS ─────────────────────────────────────────────────────────────────
+app.get('/hangers', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'hangers.html'));
+});
+
+app.post('/api/hangers/plan', (req, res) => {
+  const { files, stock } = req.body || {};
+  if (!Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No CSV files were provided.' });
+  }
+
+  const jobFiles = [];
+  let stockFile = stock && String(stock.text || '').trim() ? stock : null;
+  const rerouted = [];
+  for (const f of files) {
+    if (looksLikeHangerStockCsv(String(f.text || ''))) {
+      if (!stockFile) { stockFile = f; rerouted.push({ name: f.name, to: 'stock' }); }
+    } else {
+      jobFiles.push(f);
+    }
+  }
+
+  let parsedStock = null;
+  let stockError = null;
+  if (stockFile) {
+    try {
+      parsedStock = parseHangerStockCsv(String(stockFile.text || ''));
+    } catch (err) {
+      stockError = err.message;
+    }
+  }
+
+  let plan;
+  try {
+    plan = planHangers(jobFiles, parsedStock);
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+  if (!plan.jobs.length) {
+    return res.status(400).json({
+      ok: false, error: 'No usable hanger material summaries found.', rejected: plan.rejected,
     });
   }
 

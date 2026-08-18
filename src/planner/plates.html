@@ -91,7 +91,7 @@
     border-radius:6px;overflow:hidden}
   table.drill-t th,table.drill-t td{padding:5px 12px;font-size:13px;border-bottom:1px solid var(--line)}
   table.drill-t tr:last-child td{border-bottom:0}
-  .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px}
+  .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px;font-size:13px;display:inline-block}
   .opt{display:block;font-size:13px}
   .opt.best{font-weight:600}
   .spare{color:var(--muted);font-size:12px;white-space:nowrap}
@@ -105,6 +105,9 @@
   .stat div span{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
     letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
   .stat div b{font-size:21px;font-variant-numeric:tabular-nums}
+  details.sec{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:14px}
+  details.sec summary{font-weight:600;cursor:pointer;user-select:none;color:var(--ink)}
+  details.sec[open] summary{margin-bottom:10px}
   .hide{display:none}
 </style>
 </head>
@@ -112,7 +115,7 @@
 <div class="wrap">
 
   <div>
-    <nav class="nav" aria-label="Planner selector"><a href="/">EWP</a><a href="/plates" class="on">Plates</a></nav>
+    <nav class="nav" aria-label="Planner selector"><a href="/">EWP</a><a href="/plates" class="on">Plates</a><a href="/hangers">Hangers</a></nav>
     <h1 style="margin-top:14px">Truss Plate Planner</h1>
     <p class="sub">Multi-job plate demand consolidated and converted to orderable units.</p>
   </div>
@@ -264,8 +267,13 @@ function render(d) {
       (d.stockInfo.lastCounted ? ' · last counted ' + esc(d.stockInfo.lastCounted) : '') +
       '</div>';
   }
-  for (const w of (d.stockInfo && d.stockInfo.warnings) || []) {
-    h += '<div class="note bad">' + esc(w) + '</div>';
+  const warnings = (d.stockInfo && d.stockInfo.warnings) || [];
+  if (warnings.length) {
+    h += '<details class="sec" style="margin-top:0;margin-bottom:4px">' +
+      '<summary style="font-weight:500;font-size:13px;color:var(--muted)">Ingestion notices &amp; warnings (' + warnings.length + ')</summary>' +
+      '<div class="note bad" style="margin-top:8px;font-size:12.5px;max-height:220px;overflow-y:auto;line-height:1.6">' +
+      warnings.map((w) => '<div>' + esc(w) + '</div>').join('') +
+      '</div></details>';
   }
 
   h += '<div class="stat">' +
@@ -276,16 +284,8 @@ function render(d) {
     '<div><span>Eaches to buy</span><b>' + n(d.totals.eachesShort) + '</b></div>' +
     '</div>';
 
-  h += '<p class="eyebrow" style="margin-top:8px">Jobs read</p><div class="tw"><table><tbody>';
-  for (const j of d.jobs) {
-    h += '<tr><td>' + esc(j.jobNumber) + ' <span class="spare">' + esc(j.jobName) + '</span></td>' +
-      '<td class="n">' + n(j.plateLines) + ' lines</td><td class="n">' + n(j.eaches) + ' eaches</td>' +
-      '<td>' + (j.plateLines === 0 ? '<span class="spare">no plates in this job</span>' : '') + '</td></tr>';
-  }
-  h += '</tbody></table></div>';
-
   const buy = d.toBuy || [];
-  h += '<p class="eyebrow" style="margin-top:8px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
+  h += '<p class="eyebrow" style="margin-top:14px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
   if (!buy.length) {
     h += '<div class="note ok">Nothing to buy — stock covers every plate in these jobs.</div>';
   } else {
@@ -296,19 +296,17 @@ function render(d) {
       '<th>Have</th><th>Buy (eaches)</th><th>Order as</th>' +
       '<th class="n">Incoming</th></tr></thead><tbody>';
     buy.forEach((r, i) => {
-      h += '<tr class="buy"><td><span class="caret" data-i="' + i + '">▸</span>' + esc(r.sku) +
-        (!r.inStockFile ? '<span class="chip warn">not in stock file</span>' : '') +
-        '</td>' +
+      h += '<tr class="buy"><td><span class="caret" data-i="' + i + '">▸</span><span class="mono"><b>' + esc(r.sku) + '</b></span></td>' +
         '<td>' + n(r.needEaches) + '</td>' +
         '<td' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
           n(r.availableEaches) + '</td>' +
         '<td><b>' + n(r.shortEaches) + '</b>' +
-          (r.shortFromLedger > 0
-            ? '<br><span class="spare" title="This SKU is already below zero in the stock file, so '
-              + 'the buy figure covers that existing shortfall as well as these jobs. Count it '
-              + 'before ordering.">' + n(r.shortFromJobs) + ' jobs + ' + n(r.shortFromLedger)
-              + ' short</span>'
-            : '') + '</td>' +
+        (r.shortFromLedger > 0
+          ? '<br><span class="spare" title="This SKU is already below zero in the stock file, so '
+            + 'the buy figure covers that existing shortfall as well as these jobs. Count it '
+            + 'before ordering.">' + n(r.shortFromJobs) + ' jobs + ' + n(r.shortFromLedger)
+            + ' short</span>'
+          : '') + '</td>' +
         '<td>' + optionsHtml(r.purchase) + '</td>' +
         '<td class="n">' + (r.incoming ? n(r.incoming) : '<span class="spare">—</span>') + '</td></tr>';
       h += '<tr class="jobs hide" id="j' + i + '"><td colspan="6"><div class="drill">' +
@@ -322,8 +320,21 @@ function render(d) {
         '</tbody></table></div></td></tr>';
     });
     h += '</tbody></table></div>';
-    h += '<p class="sub" style="font-size:13px">Incoming is shown, never subtracted — whether an ' +
+    h += '<p class="sub" style="font-size:13px;margin-top:6px">Incoming is shown, never subtracted — whether an ' +
       'open order lands in time is your call, not the tool\'s.</p>';
+  }
+
+  if (d.jobs && d.jobs.length) {
+    h += '<details class="sec"><summary>Included Jobs (' + n(d.jobs.length) + ' files)</summary>' +
+      '<div class="tw" style="margin-top:10px"><table><thead><tr>' +
+      '<th>Job #</th><th>Job Name</th><th class="n">Plate Lines</th><th class="n">Eaches</th><th>Notes</th>' +
+      '</tr></thead><tbody>';
+    for (const j of d.jobs) {
+      h += '<tr><td class="mono"><b>' + esc(j.jobNumber) + '</b></td><td>' + esc(j.jobName) + '</td>' +
+        '<td class="n">' + n(j.plateLines) + '</td><td class="n">' + n(j.eaches) + '</td>' +
+        '<td>' + (j.plateLines === 0 ? '<span class="spare">no plates in this job</span>' : '') + '</td></tr>';
+    }
+    h += '</tbody></table></div></details>';
   }
 
   $('#out').innerHTML = h;

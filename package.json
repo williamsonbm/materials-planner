@@ -5,9 +5,9 @@
   "description": "Standalone Materials purchase planner — decides which stock lengths and truss plates to order for a batch of jobs. No database, no network at runtime.",
   "scripts": {
     "build": "echo 'Build complete'",
-    "dev": "node src/planner/server.js",
+    "dev": "node server.js",
     "planner": "node src/planner/server.js",
-    "start": "node src/planner/server.js",
+    "start": "node server.js",
     "test": "node --test"
   },
   "engines": {
