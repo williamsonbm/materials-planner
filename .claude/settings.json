@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d=\\\"\\\";process.stdin.on(\\\"data\\\",c=>d+=c);process.stdin.on(\\\"end\\\",()=>{try{const j=JSON.parse(d);const cmd=(j.tool_input&&j.tool_input.command)||\\\"\\\";const re=/(^|[^A-Za-z0-9_.-])git(\\\\.exe)?[ \\\\t]+(-\\\\S+[ \\\\t]+)*push([ \\\\t]|$)/i;if(re.test(cmd)){process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\\"Blocked by project hook: git push is disabled for this session (see .claude/settings.json). Ask the user to push manually, or to remove/edit the hook if this should be allowed.\\\"}}))}}catch(e){}});\"",
+            "statusMessage": "Checking for git push..."
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d=\\\"\\\";process.stdin.on(\\\"data\\\",c=>d+=c);process.stdin.on(\\\"end\\\",()=>{try{const j=JSON.parse(d);const cmd=(j.tool_input&&j.tool_input.command)||\\\"\\\";const re=/(^|[^A-Za-z0-9_.-])git(\\\\.exe)?[ \\\\t]+(-\\\\S+[ \\\\t]+)*push([ \\\\t]|$)/i;if(re.test(cmd)){process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\\"Blocked by project hook: git push is disabled for this session (see .claude/settings.json). Ask the user to push manually, or to remove/edit the hook if this should be allowed.\\\"}}))}}catch(e){}});\"",
+            "statusMessage": "Checking for git push..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const path = require(\\\"path\\\"); const os = require(\\\"os\\\"); let d = \\\"\\\"; process.stdin.on(\\\"data\\\", c => d += c); process.stdin.on(\\\"end\\\", () => {   try {     const j = JSON.parse(d);     const ti = j.tool_input || {};     const root = process.cwd();     const parent = path.dirname(root);     const tmp = os.tmpdir();     const rootLower = root.toLowerCase();     const parentLower = parent.toLowerCase();     const tmpLower = tmp.toLowerCase();     function outsideProject(p) {       if (!p) return false;       const resolved = path.resolve(root, p).toLowerCase();       if (resolved === rootLower || resolved.startsWith(rootLower + path.sep)) return false;       if (resolved.startsWith(tmpLower)) return false;       return resolved.startsWith(parentLower + path.sep);     }     let hit = [ti.file_path, ti.notebook_path, ti.path].some(outsideProject);     if (!hit && ti.command) {       const cmdLower = ti.command.toLowerCase();       const scrubbed = cmdLower.split(rootLower).join(\\\"\\\");       hit = scrubbed.includes(parentLower);     }     if (hit) {       process.stdout.write(JSON.stringify({         hookSpecificOutput: {           hookEventName: \\\"PreToolUse\\\",           permissionDecision: \\\"deny\\\",           permissionDecisionReason: \\\"Blocked: that path is outside this project, in a sibling project directory. Read/Grep/Glob across sibling projects is fine for reference; edits, writes, and shell commands must stay inside this repo (or the OS temp/scratch directory).\\\"         }       }));     }   } catch (e) {} });\"",
+            "statusMessage": "Checking project boundary..."
+          }
+        ]
+      }
+    ]
+  }
+}
