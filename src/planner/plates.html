@@ -84,6 +84,8 @@
   table.buy col.c-order{width:auto}
   table.buy col.c-inc{width:90px}
   tr.buy td:first-child{border-left:3px solid var(--warn)}
+  tr.buy.non-stock td{background:var(--bad-bg);color:var(--ink)}
+  tr.buy.non-stock td:first-child{border-left:3px solid var(--bad)}
   tr.jobs td{background:var(--surface-2);padding:12px 14px}
   .drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
     letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
@@ -92,6 +94,11 @@
   table.drill-t th,table.drill-t td{padding:5px 12px;font-size:13px;border-bottom:1px solid var(--line)}
   table.drill-t tr:last-child td{border-bottom:0}
   .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px;font-size:13px;display:inline-block}
+  th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+  th.sortable:hover{color:var(--ink)}
+  .sort-icon{font-size:10.5px;margin-left:4px;display:inline-block;vertical-align:baseline}
+  .sort-icon.inactive{color:var(--muted);opacity:.5}
+  .sort-icon.active{color:var(--accent)}
   .opt{display:block;font-size:13px}
   .opt.best{font-weight:600}
   .spare{color:var(--muted);font-size:12px;white-space:nowrap}
@@ -137,7 +144,7 @@
 
   <div class="row">
     <button id="go" disabled>Work out what to buy</button>
-    <button class="ghost" id="clear">Clear</button>
+    <button class="ghost" id="clear" style="display:none">Clear</button>
     <span class="sub" id="msg"></span>
   </div>
 
@@ -147,6 +154,22 @@
 <script>
 const $ = (s) => document.querySelector(s);
 let jobFiles = [], stockFile = null;
+let currentPlanData = null;
+let sortCol = 'buy'; // 'sku' | 'need' | 'buy'
+let sortDir = 'desc'; // 'asc' | 'desc'
+const openDrills = new Set();
+
+const STOCKED_PLATE_KEYS = new Set([
+  'MT18AHS3X8', 'MT18AHS3X10', 'MT18AHS5X14', 'MT18AHS6X8', 'MT18AHS6X10',
+  'MT18AHS6X14', 'MT18AHS7X8', 'MT18AHS7X10', 'MT18AHS8X10', 'MT18AHS8X14',
+  'MT18AHS10X10',
+  'MT2015X3', 'MT2015X4', 'MT202X4', 'MT203X3', 'MT203X4', 'MT203X6',
+  'MT203X8', 'MT203X10', 'MT204X4', 'MT204X5', 'MT204X7', 'MT204X10',
+  'MT204X12', 'MT205X5', 'MT205X6', 'MT205X7', 'MT205X8', 'MT205X12',
+  'MT206X6', 'MT206X8', 'MT207X8', 'MT207X10', 'MT207X14', 'MT208X8',
+  'MT208X14', 'MT2010X10', 'MT2010X14', 'MT2012X12', 'MT2012X14',
+  'MT20HS5X10', 'MT20HS6X12', 'MT20HS7X10', 'MT20HS10X12',
+]);
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
   ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -162,6 +185,7 @@ function paint() {
     ? `<div><span>${esc(stockFile.name)}</span><button class="rm" id="rmStock" title="remove">&times;</button></div>`
     : '';
   $('#go').disabled = jobFiles.length === 0;
+  $('#clear').style.display = (jobFiles.length > 0 || stockFile) ? 'inline-block' : 'none';
 }
 
 function readFiles(list, cb) {
@@ -212,7 +236,9 @@ $('#pick').addEventListener('change', (e) =>
 $('#pickStock').addEventListener('change', (e) =>
   readFiles([...e.target.files], (fs) => { if (fs[0]) stockFile = fs[0]; paint(); }));
 $('#clear').addEventListener('click', () => {
-  jobFiles = []; stockFile = null; $('#out').innerHTML = ''; $('#msg').textContent = ''; paint();
+  jobFiles = []; stockFile = null; currentPlanData = null; openDrills.clear();
+  sortCol = 'buy'; sortDir = 'desc';
+  $('#out').innerHTML = ''; $('#msg').textContent = ''; paint();
 });
 
 $('#go').addEventListener('click', async () => {
@@ -225,15 +251,18 @@ $('#go').addEventListener('click', async () => {
     const d = await res.json();
     $('#msg').textContent = '';
     if (!d.ok) {
+      currentPlanData = null;
       $('#out').innerHTML = '<div class="note bad"><b>Couldn\'t plan.</b> ' + esc(d.error) +
         (d.rejected && d.rejected.length
           ? '<br>' + d.rejected.map((r) => esc(r.name) + ' — ' + esc(r.reason)).join('<br>') : '') +
         '</div>';
       return;
     }
+    currentPlanData = d;
     render(d);
   } catch (err) {
     $('#msg').textContent = '';
+    currentPlanData = null;
     $('#out').innerHTML = '<div class="note bad">' + esc(err.message) + '</div>';
   } finally {
     $('#go').disabled = jobFiles.length === 0;
@@ -249,7 +278,36 @@ function optionsHtml(p) {
     ' <span class="spare">' + n(o.leftover) + ' spare</span></span>').join('');
 }
 
+function sortIndicator(col) {
+  if (sortCol !== col) return '<span class="sort-icon inactive" title="Click to sort">↕</span>';
+  return sortDir === 'asc'
+    ? '<span class="sort-icon active" title="Sorted least to most (ascending)">▲</span>'
+    : '<span class="sort-icon active" title="Sorted most to least (descending)">▼</span>';
+}
+
+function getSortedBuyList(buyList) {
+  if (!buyList) return [];
+  const list = [...buyList];
+  list.sort((a, b) => {
+    if (sortCol === 'sku') {
+      const cmp = a.sku.localeCompare(b.sku, undefined, { numeric: true, sensitivity: 'base' });
+      return sortDir === 'asc' ? cmp : -cmp;
+    }
+    if (sortCol === 'need') {
+      const diff = a.needEaches - b.needEaches;
+      return (sortDir === 'asc' ? diff : -diff) || a.sku.localeCompare(b.sku);
+    }
+    if (sortCol === 'buy') {
+      const diff = a.shortEaches - b.shortEaches;
+      return (sortDir === 'asc' ? diff : -diff) || a.sku.localeCompare(b.sku);
+    }
+    return 0;
+  });
+  return list;
+}
+
 function render(d) {
+  if (!d) return;
   let h = '';
 
   // Staleness first. The stock file is a manual export, so it can be old — and a
@@ -284,7 +342,9 @@ function render(d) {
     '<div><span>Eaches to buy</span><b>' + n(d.totals.eachesShort) + '</b></div>' +
     '</div>';
 
-  const buy = d.toBuy || [];
+  const rawBuy = d.toBuy || [];
+  const buy = getSortedBuyList(rawBuy);
+
   h += '<p class="eyebrow" style="margin-top:14px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
   if (!buy.length) {
     h += '<div class="note ok">Nothing to buy — stock covers every plate in these jobs.</div>';
@@ -292,11 +352,23 @@ function render(d) {
     h += '<div class="tw"><table class="buy">' +
       '<colgroup><col class="c-sku"><col class="c-need"><col class="c-have">' +
       '<col class="c-buy"><col class="c-order"><col class="c-inc"></colgroup>' +
-      '<thead><tr><th>SKU</th><th>Need</th>' +
-      '<th>Have</th><th>Buy (eaches)</th><th>Order as</th>' +
+      '<thead><tr>' +
+      '<th class="sortable" data-col="sku">SKU ' + sortIndicator('sku') + '</th>' +
+      '<th class="sortable" data-col="need">Need ' + sortIndicator('need') + '</th>' +
+      '<th>Have</th>' +
+      '<th class="sortable" data-col="buy">Buy (eaches) ' + sortIndicator('buy') + '</th>' +
+      '<th>Order as</th>' +
       '<th class="n">Incoming</th></tr></thead><tbody>';
-    buy.forEach((r, i) => {
-      h += '<tr class="buy"><td><span class="caret" data-i="' + i + '">▸</span><span class="mono"><b>' + esc(r.sku) + '</b></span></td>' +
+
+    buy.forEach((r) => {
+      const isStocked = r.isStocked !== undefined ? r.isStocked : STOCKED_PLATE_KEYS.has(r.key);
+      const isExpanded = openDrills.has(r.key);
+
+      h += '<tr class="buy' + (!isStocked ? ' non-stock' : '') + '">' +
+        '<td><span class="caret" data-key="' + esc(r.key) + '">' + (isExpanded ? '▾' : '▸') + '</span>' +
+        '<span class="mono"><b>' + esc(r.sku) + '</b></span>' +
+        (!isStocked ? '<span class="chip bad">Non-Stock</span>' : '') +
+        '</td>' +
         '<td>' + n(r.needEaches) + '</td>' +
         '<td' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
           n(r.availableEaches) + '</td>' +
@@ -309,8 +381,9 @@ function render(d) {
           : '') + '</td>' +
         '<td>' + optionsHtml(r.purchase) + '</td>' +
         '<td class="n">' + (r.incoming ? n(r.incoming) : '<span class="spare">—</span>') + '</td></tr>';
-      h += '<tr class="jobs hide" id="j' + i + '"><td colspan="6"><div class="drill">' +
-        '<h4>Driving demand — ' + n(r.byJob.length) + ' job(s)</h4>' +
+
+      h += '<tr class="jobs' + (isExpanded ? '' : ' hide') + '" id="j-' + esc(r.key) + '"><td colspan="6"><div class="drill">' +
+        '<h4>Driving demand — ' + n(r.byJob.length) + ' job(s) for ' + esc(r.sku) + '</h4>' +
         '<table class="drill-t"><thead><tr><th>Job #</th><th>Name</th>' +
         '<th class="n">Qty</th><th>Delivery</th></tr></thead><tbody>' +
         r.byJob.map((j) => '<tr><td>' + esc(j.job) + '</td>' +
@@ -322,6 +395,8 @@ function render(d) {
     h += '</tbody></table></div>';
     h += '<p class="sub" style="font-size:13px;margin-top:6px">Incoming is shown, never subtracted — whether an ' +
       'open order lands in time is your call, not the tool\'s.</p>';
+    h += '<div class="note bad" style="margin-top:10px;font-size:13.5px">' +
+      '<b>Non-Stock Plate Notice:</b> Any non-stocked plates should be identified and redesigned to use stocked plates.</div>';
   }
 
   if (d.jobs && d.jobs.length) {
@@ -338,10 +413,34 @@ function render(d) {
   }
 
   $('#out').innerHTML = h;
+
+  $('#out').querySelectorAll('th.sortable').forEach((th) => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = (col === 'sku') ? 'asc' : 'desc';
+      }
+      render(currentPlanData);
+    });
+  });
+
   $('#out').querySelectorAll('.caret').forEach((c) => c.addEventListener('click', () => {
-    const r = $('#j' + c.dataset.i);
-    r.classList.toggle('hide');
-    c.textContent = r.classList.contains('hide') ? '▸' : '▾';
+    const key = c.dataset.key;
+    const r = document.getElementById('j-' + key);
+    if (!r) return;
+    const isClosed = r.classList.contains('hide');
+    if (isClosed) {
+      r.classList.remove('hide');
+      c.textContent = '▾';
+      openDrills.add(key);
+    } else {
+      r.classList.add('hide');
+      c.textContent = '▸';
+      openDrills.delete(key);
+    }
   }));
 }
 

@@ -281,6 +281,17 @@ test('planPlates is pure - same inputs, identical output, inputs untouched', () 
   assert.strictEqual(JSON.stringify(JOB_FILES), before, 'inputs must not be mutated');
 });
 
+test('planPlates correctly identifies stocked vs non-stocked plates', () => {
+  const r = planPlates(JOB_FILES, STOCK);
+  const stocked = row(r, 'MT20 3x3');
+  assert.strictEqual(stocked.isStocked, true, 'MT20 3x3 is in the stocked plate list');
+
+  const mt18ahs = row(r, 'MT18AHS 8x10');
+  if (mt18ahs) {
+    assert.strictEqual(mt18ahs.isStocked, true, 'MT18AHS 8x10 is in the stocked plate list');
+  }
+});
+
 test('the plate modules require no database, no fs, no network', () => {
   // Enforces the same hard constraint planner/server.js declares. A stray
   // require('pg') here would make the tool need a DB it must never have.

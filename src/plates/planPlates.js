@@ -37,6 +37,23 @@ const { parsePlateSummary } = require('./parsePlateSummary.js');
 const { skuKey } = require('./readPlateStockCsv.js');
 const PACK_FACTORS = require('./packFactors.json');
 
+// Standard stocked plates list provided by engineering / yard operations.
+// Plates outside this set are non-stocked special orders and flagged for redesign.
+const STOCKED_PLATES = new Set([
+  // M18AHS / MT18AHS (11 SKUs)
+  'MT18AHS3X8', 'MT18AHS3X10', 'MT18AHS5X14', 'MT18AHS6X8', 'MT18AHS6X10',
+  'MT18AHS6X14', 'MT18AHS7X8', 'MT18AHS7X10', 'MT18AHS8X10', 'MT18AHS8X14',
+  'MT18AHS10X10',
+  // MT20 (29 SKUs)
+  'MT2015X3', 'MT2015X4', 'MT202X4', 'MT203X3', 'MT203X4', 'MT203X6',
+  'MT203X8', 'MT203X10', 'MT204X4', 'MT204X5', 'MT204X7', 'MT204X10',
+  'MT204X12', 'MT205X5', 'MT205X6', 'MT205X7', 'MT205X8', 'MT205X12',
+  'MT206X6', 'MT206X8', 'MT207X8', 'MT207X10', 'MT207X14', 'MT208X8',
+  'MT208X14', 'MT2010X10', 'MT2010X14', 'MT2012X12', 'MT2012X14',
+  // MT20HS (4 SKUs)
+  'MT20HS5X10', 'MT20HS6X12', 'MT20HS7X10', 'MT20HS10X12',
+]);
+
 // key → ALL pack factors for that SKU. Built once at require time; the table is
 // static reference data and changes only when a supplier changes packaging.
 //
@@ -174,11 +191,14 @@ function planPlates(files, stock) {
     const available = s ? s.availableRaw : 0;
     const short = Math.max(0, d.eaches - available);
 
+    const isStocked = STOCKED_PLATES.has(d.key);
+
     const row = {
       sku: d.sku,
       key: d.key,
       needEaches: d.eaches,
       availableEaches: available,
+      isStocked,
       // True when `available` is impossible (below zero) and the buy figure
       // therefore includes an existing ledger shortfall as well as this batch.
       negativeStock: available < 0,
@@ -232,4 +252,4 @@ function planPlates(files, stock) {
   };
 }
 
-module.exports = { planPlates, toPurchaseUnits, PACK_BY_KEY };
+module.exports = { planPlates, toPurchaseUnits, PACK_BY_KEY, STOCKED_PLATES };
