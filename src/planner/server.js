@@ -33,9 +33,10 @@ const { planPlates } = require('../plates/planPlates.js');
 const { parsePlateStockCsv, looksLikePlateStockCsv } = require('../plates/readPlateStockCsv.js');
 const { planHangers } = require('../hangers/planHangers.js');
 const { parseHangerStockCsv, looksLikeHangerStockCsv } = require('../hangers/readHangerStockCsv.js');
+const { planLvl } = require('../lvl/planLvl.js');
 
 const PORT = Number(process.env.PORT || process.env.PLANNER_PORT) || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
 // How many ranked candidates to ship to the browser. The search can evaluate
 // ~969 sets at maxLengths:3; the buyer only ever looks at the head of that list,
@@ -184,6 +185,64 @@ app.post('/api/hangers/plan', (req, res) => {
   if (!plan.jobs.length) {
     return res.status(400).json({
       ok: false, error: 'No usable hanger material summaries found.', rejected: plan.rejected,
+    });
+  }
+
+  res.json({
+    ok: true,
+    ...plan,
+    rerouted,
+    stockFileName: stockFile ? stockFile.name : null,
+    stockError,
+  });
+});
+
+// ── LVL (linear feet) ───────────────────────────────────────────────────────
+// A third, independent tool sharing this process. Not a cut-optimization
+// question at all — it's a linear-footage roll-up, so it reuses parseJobCsv
+// and readStockCsv.js's generic stock reader/sniffer as-is rather than
+// duplicating them. See src/lvl/planLvl.js for why qty × length already
+// accounts for plies without a separate multiplier.
+app.get('/lvl', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'lvl.html'));
+});
+
+app.post('/api/lvl/plan', (req, res) => {
+  const { files, stock } = req.body || {};
+  if (!Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No CSV files were provided.' });
+  }
+
+  const jobFiles = [];
+  let stockFile = stock && String(stock.text || '').trim() ? stock : null;
+  const rerouted = [];
+  for (const f of files) {
+    if (looksLikeStockCsv(String(f.text || ''))) {
+      if (!stockFile) { stockFile = f; rerouted.push({ name: f.name, to: 'stock' }); }
+    } else {
+      jobFiles.push(f);
+    }
+  }
+
+  let parsedStock = null;
+  let stockError = null;
+  if (stockFile) {
+    try {
+      parsedStock = parseStockCsv(String(stockFile.text || ''));
+    } catch (err) {
+      stockError = err.message;
+    }
+  }
+
+  let plan;
+  try {
+    plan = planLvl(jobFiles, parsedStock);
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+  if (!plan.jobs.length) {
+    return res.status(400).json({
+      ok: false, error: 'No usable LVL material summaries found.', rejected: plan.rejected,
     });
   }
 

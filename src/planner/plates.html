@@ -122,7 +122,7 @@
 <div class="wrap">
 
   <div>
-    <nav class="nav" aria-label="Planner selector"><a href="/">EWP</a><a href="/plates" class="on">Plates</a><a href="/hangers">Hangers</a></nav>
+    <nav class="nav" aria-label="Planner selector"><a href="/">EWP</a><a href="/plates" class="on">Plates</a><a href="/hangers">Hangers</a><a href="/lvl">LVL</a></nav>
     <h1 style="margin-top:14px">Truss Plate Planner</h1>
     <p class="sub">Multi-job plate demand consolidated and converted to orderable units.</p>
   </div>
@@ -345,7 +345,14 @@ function render(d) {
   const rawBuy = d.toBuy || [];
   const buy = getSortedBuyList(rawBuy);
 
-  h += '<p class="eyebrow" style="margin-top:14px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
+  if (buy.length) {
+    h += '<div class="row" style="justify-content:space-between;margin-top:14px">' +
+      '<p class="eyebrow" style="margin:0">Buy list — ' + n(buy.length) + ' SKU(s)</p>' +
+      '<button class="ghost" id="btn-toggle-drills" style="padding:4px 12px;font-size:12.5px">' +
+      (buy.every((r) => openDrills.has(r.key)) ? 'Collapse all' : 'Expand all') + '</button></div>';
+  } else {
+    h += '<p class="eyebrow" style="margin-top:14px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
+  }
   if (!buy.length) {
     h += '<div class="note ok">Nothing to buy — stock covers every plate in these jobs.</div>';
   } else {
@@ -442,6 +449,15 @@ function render(d) {
       openDrills.delete(key);
     }
   }));
+
+  const btnToggleDrills = document.getElementById('btn-toggle-drills');
+  if (btnToggleDrills) {
+    btnToggleDrills.addEventListener('click', () => {
+      const expanding = buy.some((r) => !openDrills.has(r.key));
+      buy.forEach((r) => (expanding ? openDrills.add(r.key) : openDrills.delete(r.key)));
+      render(currentPlanData);
+    });
+  }
 }
 
 paint();

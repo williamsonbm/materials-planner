@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hanger purchase planner</title>
+<title>LVL linear-footage planner</title>
 <style>
   :root {
     --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#606a76; --line:#dfe3e8;
@@ -70,16 +70,8 @@
   th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 
-  table.buy{table-layout:fixed}
-  table.buy col.c-sku{width:240px}
-  table.buy col.c-need{width:90px}
-  table.buy col.c-have{width:90px}
-  table.buy col.c-buy{width:110px}
-  table.buy col.c-inc{width:110px}
-  table.buy col.c-thresh{width:90px}
-  table.buy col.c-status{width:auto}
-
-  tr.buy td:first-child{border-left:3px solid var(--warn)}
+  tr.depth td:first-child{border-left:3px solid var(--accent)}
+  tr.depth.short td:first-child{border-left-color:var(--warn)}
   tr.jobs td{background:var(--surface-2);padding:12px 14px}
   .drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
     letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
@@ -92,10 +84,8 @@
   .chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
     letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:2px;
     border:1px solid currentColor;margin-left:6px}
-  .chip.unmatched{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
-  .chip.incoming{color:var(--accent);border-color:var(--accent);background:var(--info-bg)}
+  .chip.short{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
   .chip.covered{color:var(--good);border-color:var(--good);background:var(--good-bg)}
-  .chip.neg{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
 
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 14px}
@@ -113,9 +103,9 @@
 <body>
 <div class="wrap">
   <div>
-    <nav class="nav" aria-label="Planner switch"><a href="/">EWP</a><a href="/plates">Plates</a><a href="/hangers" class="on">Hangers</a><a href="/lvl">LVL</a></nav>
-    <h1 style="margin-top:14px">Hanger Purchase Planner</h1>
-    <p class="sub">Multi-job hanger and hardware demand consolidated and netted against stock.</p>
+    <nav class="nav" aria-label="Planner switch"><a href="/">EWP</a><a href="/plates">Plates</a><a href="/hangers">Hangers</a><a href="/lvl" class="on">LVL</a></nav>
+    <h1 style="margin-top:14px">LVL Linear-Footage Planner</h1>
+    <p class="sub">Multi-job LVL usage by depth, in linear feet, netted against stock.</p>
   </div>
 
   <div class="zones">
@@ -126,18 +116,18 @@
       <div class="files" id="fl-jobs"></div>
     </div>
     <div class="zone" id="z-stock">
-      <h3>Hanger stock CSV <span class="badge-opt">Optional</span></h3>
-      <p class="sub-hint">Stock&nbsp;&rarr;&nbsp;Hangers&nbsp;&rarr;&nbsp;Export CSV.</p>
+      <h3>LVL stock CSV <span class="badge-opt">Optional</span></h3>
+      <p class="sub-hint">Same item,span,qty format as the EWP stock CSV.</p>
       <input type="file" id="f-stock" accept=".csv" style="display:none">
       <div class="files" id="fl-stock"></div>
     </div>
   </div>
 
   <div class="row">
-    <button id="btn-plan" disabled>Work out what to buy</button>
+    <button id="btn-plan" disabled>Calculate linear feet</button>
     <button id="btn-clear" class="ghost">Clear</button>
     <span class="sub" id="msg"></span>
-    <span id="busy" style="display:none;color:var(--muted)">Analyzing hardware requirements…</span>
+    <span id="busy" style="display:none;color:var(--muted)">Totaling LVL usage…</span>
   </div>
 
   <div id="out" style="display:flex;flex-direction:column;gap:18px"></div>
@@ -179,7 +169,7 @@
   }
   function fmt(n) {
     if (n == null || !Number.isFinite(n)) return '—';
-    return Number(n).toLocaleString('en-US');
+    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
   }
 
   async function readFile(file) {
@@ -191,12 +181,13 @@
     });
   }
 
-  // Sniff if CSV is stock file
+  // Sniff if CSV is a stock file (item,span,qty/available shape) rather than
+  // a MiTek material summary (whose header cells are "Job Name:", "LABEL", …).
   function isStockFile(text) {
     const head = String(text || '').slice(0, 1024).toLowerCase();
-    return (head.includes('sku') || head.includes('item')) &&
-           (head.includes('available') || head.includes('on_hand') || head.includes('qty')) &&
-           !head.includes('span') && !head.includes('material name');
+    return (head.includes('item') || head.includes('product') || head.includes('description')) &&
+           head.includes('span') &&
+           (head.includes('available') || head.includes('qty') || head.includes('on_hand'));
   }
 
   async function addFiles(fileList, targetHint) {
@@ -260,14 +251,14 @@
         files: Array.from(S.jobs.values()),
         stock: S.stock,
       };
-      const res = await fetch('/api/hangers/plan', {
+      const res = await fetch('/api/lvl/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        msg.innerHTML = `<div class="note bad">${esc(data.error || 'Failed to analyze hanger files.')}</div>`;
+        msg.innerHTML = `<div class="note bad">${esc(data.error || 'Failed to total LVL usage.')}</div>`;
         return;
       }
       renderPlan(data);
@@ -284,12 +275,12 @@
     let html = '';
 
     if (p.rerouted && p.rerouted.length) {
-      html += `<div class="note ok">Auto-detected <b>${esc(p.rerouted.map(r=>r.name).join(', '))}</b> as the hanger stock file.</div>`;
+      html += `<div class="note ok">Auto-detected <b>${esc(p.rerouted.map(r=>r.name).join(', '))}</b> as the LVL stock file.</div>`;
     }
     if (p.stockError) {
-      html += `<div class="note bad"><b>Stock file not read:</b> ${esc(p.stockError)}<br>Planned as if the yard were empty — every hanger shows as a buy.</div>`;
+      html += `<div class="note bad"><b>Stock file not read:</b> ${esc(p.stockError)}<br>Totaled usage only — nothing was netted against stock.</div>`;
     } else if (!p.hasStock) {
-      html += '<div class="note"><b>No stock file.</b> Everything below is a full buy, not a shortfall.</div>';
+      html += '<div class="note"><b>No stock file.</b> Figures below are usage totals only — no remaining/needed columns.</div>';
     } else {
       html += `<div class="note ok"><b>Stock:</b> ${esc(p.stockFileName || 'file')}</div>`;
     }
@@ -304,79 +295,64 @@
       `;
     }
 
-    // Stats Bar
+    // Stats bar
     html += `
       <div class="stats">
         <div class="stat"><div class="l">Jobs</div><div class="v">${fmt(sum.jobsCount)}</div></div>
-        <div class="stat"><div class="l">SKUs Needed</div><div class="v">${fmt(sum.skusNeeded)}</div></div>
-        <div class="stat"><div class="l">SKUs to Buy</div><div class="v">${fmt(sum.skusToBuy)}</div></div>
-        <div class="stat"><div class="l">Pieces to Buy</div><div class="v" style="color:var(--warn)">${fmt(sum.totalBuyPieces)}</div></div>
-        <div class="stat"><div class="l">Incoming on PO</div><div class="v">${fmt(sum.totalIncomingPieces)}</div></div>
-        ${p.hasStock && sum.skusUnmatched > 0 ? `<div class="stat"><div class="l">Special Order</div><div class="v" style="color:var(--warn)">${fmt(sum.skusUnmatched)}</div></div>` : ''}
+        <div class="stat"><div class="l">Depths</div><div class="v">${fmt(sum.depthsCount)}</div></div>
+        <div class="stat"><div class="l">Used (LF)</div><div class="v">${fmt(sum.totalUsedLf)}</div></div>
+        ${p.hasStock ? `<div class="stat"><div class="l">Stock (LF)</div><div class="v">${fmt(sum.totalStockLf)}</div></div>` : ''}
+        ${p.hasStock ? `<div class="stat"><div class="l">Needed (LF)</div><div class="v" style="color:var(--warn)">${fmt(sum.totalNeededLf)}</div></div>` : ''}
       </div>
     `;
 
-    // Buy List
-    if (p.buyList.length > 0) {
+    // By-depth table
+    if (p.byDepth.length > 0) {
       html += `
         <div>
           <div class="row" style="justify-content:space-between;margin-top:14px">
-            <div class="eyebrow" style="margin:0">Buy list — ${p.buyList.length} SKU(s)</div>
-            <button class="ghost" id="btn-toggle-drills" style="padding:4px 12px;font-size:12.5px">Expand all</button>
+            <div class="eyebrow" style="margin:0">By depth — ${p.byDepth.length} size(s)</div>
+            <button class="ghost" id="btn-toggle-depths" style="padding:4px 12px;font-size:12.5px">Expand all</button>
           </div>
           <div class="tw">
-            <table class="buy">
-              <colgroup>
-                <col class="c-sku"><col class="c-need"><col class="c-have"><col class="c-buy"><col class="c-inc"><col class="c-thresh"><col class="c-status">
-              </colgroup>
+            <table>
               <thead>
                 <tr>
-                  <th>SKU</th>
-                  <th class="n">Need</th>
-                  <th class="n">Avail</th>
-                  <th class="n">Buy (Pcs)</th>
-                  <th class="n">On PO</th>
-                  <th class="n">Min</th>
-                  <th>Notes</th>
+                  <th>Depth</th>
+                  <th class="n">Used (LF)</th>
+                  ${p.hasStock ? '<th class="n">Stock (LF)</th><th class="n">Remaining (LF)</th><th class="n">Needed (LF)</th>' : ''}
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
       `;
 
-      p.buyList.forEach((row, idx) => {
-        const isNeg = row.availableRaw != null && row.availableRaw < 0;
-        const availCls = row.available === 0 || row.available == null ? 'zero-ink' : '';
-        const incCls = row.incoming === 0 ? 'zero-ink' : '';
-        const minCls = row.threshold === 0 ? 'zero-ink' : '';
-
+      p.byDepth.forEach((row, idx) => {
+        const isShort = p.hasStock && row.neededLf > 0;
         html += `
-          <tr class="buy" data-idx="${idx}">
+          <tr class="depth${isShort ? ' short' : ''}" data-idx="${idx}">
             <td>
-              <span class="caret" data-toggle="${idx}">▸</span><span class="mono"><b>${esc(row.sku)}</b></span>
-              ${isNeg ? `<span class="chip neg">${row.availableRaw} in ledger</span>` : ''}
+              <span class="caret" data-group="depth" data-toggle="${idx}">▸</span><span class="mono"><b>${esc(row.label)}</b></span>
             </td>
-            <td class="n">${fmt(row.demand)}</td>
-            <td class="n ${availCls}">${row.available != null ? fmt(row.available) : '—'}</td>
-            <td class="n"><strong style="color:var(--warn)">${fmt(row.buyPieces)}</strong></td>
-            <td class="n ${incCls}">${row.incoming ? `+${fmt(row.incoming)}` : '0'}</td>
-            <td class="n ${minCls}">${row.threshold ? fmt(row.threshold) : '0'}</td>
-            <td>
-              ${row.incoming > 0 ? '<span class="chip incoming">PO Active</span>' : ''}
-              ${row.isUnmatched && p.hasStock ? '<span class="chip unmatched">Not Stocked</span>' : ''}
-            </td>
+            <td class="n">${fmt(row.usedLf)}</td>
+            ${p.hasStock ? `
+              <td class="n ${row.stockLf === 0 ? 'zero-ink' : ''}">${fmt(row.stockLf)}</td>
+              <td class="n">${fmt(row.remainingLf)}</td>
+              <td class="n"><strong style="color:${isShort ? 'var(--warn)' : 'inherit'}">${fmt(row.neededLf)}</strong></td>
+            ` : ''}
+            <td>${isShort ? '<span class="chip short">Short</span>' : (p.hasStock ? '<span class="chip covered">Covered</span>' : '')}</td>
           </tr>
-          <tr class="jobs" id="drill-${idx}" style="display:none">
-            <td colspan="7">
+          <tr class="jobs" id="drill-depth-${idx}" style="display:none">
+            <td colspan="${p.hasStock ? 6 : 3}">
               <div class="drill">
-                <h4>Driving demand — ${row.jobs.length} job(s) for ${esc(row.sku)}</h4>
+                <h4>Driving usage — ${row.jobs.length} job(s) at ${esc(row.label)}</h4>
                 <table class="drill-t">
                   <thead>
                     <tr>
                       <th>Job #</th>
                       <th>Job Name</th>
                       <th>Delivery</th>
-                      <th>Section</th>
-                      <th class="n">Qty</th>
+                      <th class="n">LF</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -385,8 +361,7 @@
                         <td class="mono"><strong>${esc(j.jobNumber || '—')}</strong></td>
                         <td>${esc(j.jobName || '—')}</td>
                         <td>${esc(j.deliveryDate || '—')}</td>
-                        <td>${esc(j.section || 'Hangers')}</td>
-                        <td class="n"><strong>${fmt(j.qty)}</strong></td>
+                        <td class="n"><strong>${fmt(j.lf)}</strong></td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -401,47 +376,14 @@
               </tbody>
             </table>
           </div>
-          <p class="sub" style="font-size:13px;margin-top:6px">Incoming is shown, never subtracted — whether an open order lands in time is your call, not the tool's.</p>
         </div>
       `;
     } else {
-      html += `<div class="note ok">All requested hangers are fully covered by available inventory.</div>`;
+      html += `<div class="note ok">No LVL usage found in these files.</div>`;
     }
 
-    // Covered in Stock Section
-    if (p.covered.length > 0) {
-      html += `
-        <details class="sec">
-          <summary>Covered in Stock (${p.covered.length} SKUs)</summary>
-          <div class="tw" style="margin-top:10px">
-            <table>
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th class="n">Demanded</th>
-                  <th class="n">Available</th>
-                  <th class="n">Remaining</th>
-                  <th class="n">On PO</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${p.covered.map(r => `
-                  <tr>
-                    <td class="mono"><strong>${esc(r.sku)}</strong> <span class="chip covered">Covered</span></td>
-                    <td class="n">${fmt(r.demand)}</td>
-                    <td class="n">${fmt(r.available)}</td>
-                    <td class="n"><strong>${fmt(r.available - r.demand)}</strong></td>
-                    <td class="n ${r.incoming ? '' : 'zero-ink'}">${r.incoming ? `+${fmt(r.incoming)}` : '0'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      `;
-    }
-
-    // Job List Section
+    // Included jobs — each job with LVL rows gets a caret that expands the
+    // raw line items exactly as they appear on that job's material sheet.
     if (p.jobs.length > 0) {
       html += `
         <details class="sec">
@@ -450,23 +392,73 @@
             <table>
               <thead>
                 <tr>
+                  <th></th>
                   <th>Job #</th>
                   <th>Job Name</th>
                   <th>Delivery</th>
-                  <th>Category</th>
-                  <th class="n">Hanger Lines</th>
+                  <th>By Depth</th>
+                  <th class="n">Total LF</th>
                 </tr>
               </thead>
               <tbody>
-                ${p.jobs.map(j => `
+                ${p.jobs.map((j, idx) => {
+                  const hasItems = j.items && j.items.length > 0;
+                  return `
                   <tr>
+                    <td>${hasItems ? `<span class="caret" data-group="job" data-toggle="${idx}">▸</span>` : ''}</td>
                     <td class="mono"><strong>${esc(j.jobNumber || '—')}</strong></td>
                     <td>${esc(j.jobName || '—')}</td>
                     <td>${esc(j.deliveryDate || '—')}</td>
-                    <td>${esc(j.category || '—')}</td>
-                    <td class="n">${fmt(j.lines ? j.lines.length : 0)}</td>
+                    <td>${j.byDepth.map(d => `${esc(d.label)}: ${fmt(d.lf)}`).join(', ') || '—'}</td>
+                    <td class="n"><strong>${fmt(j.totalLf)}</strong></td>
                   </tr>
-                `).join('')}
+                  ${hasItems ? `
+                  <tr class="jobs" id="drill-job-${idx}" style="display:none">
+                    <td colspan="6">
+                      <div class="drill">
+                        <h4>Line items — ${j.items.length} row(s) on ${esc(j.jobNumber || j.name)}'s material sheet</h4>
+                        <table class="drill-t">
+                          <thead>
+                            <tr>
+                              <th>Label</th>
+                              <th>Size</th>
+                              <th class="n">Qty</th>
+                              <th>Length</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${j.items.map(it => `
+                              <tr>
+                                <td class="mono">${esc(it.label || '—')}</td>
+                                <td>${esc(it.size)}</td>
+                                <td class="n">${fmt(it.qty)}</td>
+                                <td class="mono">${esc(it.length)}</td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                  ` : ''}
+                `; }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      `;
+    }
+
+    // Rejected files
+    if (p.rejected && p.rejected.length) {
+      html += `
+        <details class="sec">
+          <summary>Skipped files (${p.rejected.length})</summary>
+          <div class="tw" style="margin-top:10px">
+            <table>
+              <thead><tr><th>File</th><th>Reason</th></tr></thead>
+              <tbody>
+                ${p.rejected.map(r => `<tr><td class="mono">${esc(r.name)}</td><td>${esc(r.reason)}</td></tr>`).join('')}
               </tbody>
             </table>
           </div>
@@ -476,9 +468,11 @@
 
     out.innerHTML = html;
 
-    // Attach drill-down toggle listeners
+    // Attach drill-down toggle listeners. Depth rows and job rows each have
+    // their own id namespace (drill-depth-N / drill-job-N) so the two
+    // sections' indices never collide.
     function setDrill(caret, open) {
-      const drill = el(`drill-${caret.dataset.toggle}`);
+      const drill = el(`drill-${caret.dataset.group}-${caret.dataset.toggle}`);
       if (!drill) return;
       drill.style.display = open ? 'table-row' : 'none';
       caret.textContent = open ? '▾' : '▸';
@@ -487,18 +481,20 @@
     out.querySelectorAll('.caret').forEach((caret) => {
       caret.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = el(`drill-${caret.dataset.toggle}`)?.style.display !== 'none';
+        const isOpen = el(`drill-${caret.dataset.group}-${caret.dataset.toggle}`)?.style.display !== 'none';
         setDrill(caret, !isOpen);
       });
     });
 
-    const btnToggleDrills = el('btn-toggle-drills');
-    if (btnToggleDrills) {
-      btnToggleDrills.addEventListener('click', () => {
-        const carets = [...out.querySelectorAll('.caret')];
-        const expanding = btnToggleDrills.textContent.trim() === 'Expand all';
-        carets.forEach((caret) => setDrill(caret, expanding));
-        btnToggleDrills.textContent = expanding ? 'Collapse all' : 'Expand all';
+    // Expand all / collapse all for the "By depth" section only — the
+    // Included Jobs drill-downs (line items) are left to their own carets.
+    const btnToggleDepths = el('btn-toggle-depths');
+    if (btnToggleDepths) {
+      btnToggleDepths.addEventListener('click', () => {
+        const depthCarets = [...out.querySelectorAll('.caret[data-group="depth"]')];
+        const expanding = btnToggleDepths.textContent.trim() === 'Expand all';
+        depthCarets.forEach((caret) => setDrill(caret, expanding));
+        btnToggleDepths.textContent = expanding ? 'Collapse all' : 'Expand all';
       });
     }
   }

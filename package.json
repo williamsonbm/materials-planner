@@ -7,6 +7,7 @@
     "build": "echo 'Build complete'",
     "dev": "node server.js",
     "planner": "node src/planner/server.js",
+    "package:windows": "bash scripts/package-windows.sh",
     "start": "node server.js",
     "test": "node --test"
   },
