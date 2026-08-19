@@ -36,7 +36,7 @@ const { parseHangerStockCsv, looksLikeHangerStockCsv } = require('../hangers/rea
 const { planLvl } = require('../lvl/planLvl.js');
 
 const PORT = Number(process.env.PORT || process.env.PLANNER_PORT) || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
 // How many ranked candidates to ship to the browser. The search can evaluate
 // ~969 sets at maxLengths:3; the buyer only ever looks at the head of that list,
