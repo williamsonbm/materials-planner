@@ -254,4 +254,8 @@ function parseCsv(text) {
 // carries the same booby-trapped item strings as a material summary —
 // `"11 7/8"" PJI-40"` — so it needs quote-aware splitting too, and a second
 // implementation would be a second thing to get wrong.
-module.exports = { parseJobCsv, parseCsv };
+//
+// parseLength is exported for src/lvl/parseLvlSheet.js, same reasoning: the
+// FT-IN-SIXTEENTHS format is a fixed MiTek convention, not something a second
+// copy should ever re-derive.
+module.exports = { parseJobCsv, parseCsv, parseLength };
