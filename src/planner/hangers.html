@@ -320,7 +320,10 @@
     if (p.buyList.length > 0) {
       html += `
         <div>
-          <div class="eyebrow" style="margin-top:14px">Buy list — ${p.buyList.length} SKU(s)</div>
+          <div class="row" style="justify-content:space-between;margin-top:14px">
+            <div class="eyebrow" style="margin:0">Buy list — ${p.buyList.length} SKU(s)</div>
+            <button class="ghost" id="btn-toggle-drills" style="padding:4px 12px;font-size:12.5px">Expand all</button>
+          </div>
           <div class="tw">
             <table class="buy">
               <colgroup>
@@ -474,17 +477,30 @@
     out.innerHTML = html;
 
     // Attach drill-down toggle listeners
+    function setDrill(caret, open) {
+      const drill = el(`drill-${caret.dataset.toggle}`);
+      if (!drill) return;
+      drill.style.display = open ? 'table-row' : 'none';
+      caret.textContent = open ? '▾' : '▸';
+    }
+
     out.querySelectorAll('.caret').forEach((caret) => {
       caret.addEventListener('click', (e) => {
         e.stopPropagation();
-        const idx = caret.dataset.toggle;
-        const drill = el(`drill-${idx}`);
-        if (!drill) return;
-        const open = drill.style.display !== 'none';
-        drill.style.display = open ? 'none' : 'table-row';
-        caret.textContent = open ? '▸' : '▾';
+        const isOpen = el(`drill-${caret.dataset.toggle}`)?.style.display !== 'none';
+        setDrill(caret, !isOpen);
       });
     });
+
+    const btnToggleDrills = el('btn-toggle-drills');
+    if (btnToggleDrills) {
+      btnToggleDrills.addEventListener('click', () => {
+        const carets = [...out.querySelectorAll('.caret')];
+        const expanding = btnToggleDrills.textContent.trim() === 'Expand all';
+        carets.forEach((caret) => setDrill(caret, expanding));
+        btnToggleDrills.textContent = expanding ? 'Collapse all' : 'Expand all';
+      });
+    }
   }
 
   updateUi();
