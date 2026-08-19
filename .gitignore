@@ -1,5 +1,8 @@
 node_modules/
 
+# Windows packaging build output — a ~40MB zip must never be committed.
+/dist/
+
 # Nothing here needs environment config — the planner has no database and no
 # secrets. This is a guard, not a requirement.
 .env
