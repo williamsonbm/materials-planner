@@ -107,6 +107,15 @@ function combinations(pool, k) {
   return out;
 }
 
+// Every subset of `pool` with size 0..k (the empty set included). Used by the
+// consolidation pass to try shrinking a winning plan onto fewer of the lengths
+// it already uses.
+function subsetsUpTo(pool, k) {
+  const out = [];
+  for (let size = 0; size <= k; size++) out.push(...combinations(pool, size));
+  return out;
+}
+
 // ---- scoring ---------------------------------------------------------------
 // Fold the emitted cut items into one score for the batch. We read the BOARDS
 // (kind:"cut"), not the summaries: a board is the thing that gets bought, and
@@ -381,23 +390,15 @@ function selectStockLengths(cutItems, opts = {}) {
   const minLength = longestIjoistCut(cutItems);
 
   // Candidates = required lengths + every (maxLengths - required.length) subset
-  // of the rest. maxLengths is an "at most", but only EXACTLY k is enumerated.
+  // of the rest. maxLengths is an "at most", so a candidate whose extra lengths
+  // the packer never opens simply reports fewer lengthsUsed and costs nothing.
   //
-  // KNOWN BUG — this comment used to claim that was harmless, on the grounds
-  // that a k-set containing a k-1 optimum "scores identically, because the
-  // packer simply never opens the unused length." It does open them. On 33844J
-  // the k=2 winner [36,32] buys 69 boards; no 5-subset can reproduce it, because
-  // every 5-set holding 36 and 32 also holds three shorter lengths the packer
-  // takes up — so k=5 returns 77 boards for the same footage and the same zero
-  // waste. compareCandidates would break that tie on board count, but the better
-  // plan is never in the candidate list to be compared.
-  // Covered by the skipped test at the end of test/ewp-select-lengths.test.js.
-  // The fix is to enumerate subsets of size <= k, or to consolidate onto fewer
-  // long boards once waste hits zero — deliberately not attempted here, since
-  // this ranking is regression-locked against the inventory app.
+  // The one case where that ISN'T free — a candidate whose extra lengths the
+  // packer DOES open, buying more boards for the same feet and zero waste — is
+  // handled by the consolidation pass after stage 2, not by enumerating smaller
+  // sets here. (Enumerating subsets of size <= k instead would fix it too, but
+  // it makes maxLengths = menu.length explode from one candidate to 2^n.)
   //
-  // `lengthsUsed` on the result reports which lengths actually got bought, so a
-  // 5-length answer that only needs 2 does say so.
   // opts.candidateSets short-circuits enumeration with an explicit list. Used by
   // the "would an unstocked length help?" check, which needs to try a handful of
   // targeted sets rather than every combination of a 19-length menu.
@@ -449,8 +450,36 @@ function selectStockLengths(cutItems, opts = {}) {
   finalists.sort(compareCandidates);
 
   const ranked = finalists.concat(swept.slice(topN));
-  const best = ranked[0] || null;
-  const bestItems = best ? itemsByKey.get(best.lengths.join(',')) : null;
+  let best = ranked[0] || null;
+  let bestItems = best ? itemsByKey.get(best.lengths.join(',')) : null;
+
+  // ---- consolidation: never open more lengths than the plan needs.
+  //
+  // The stage-1 sweep ranks each candidate on a cheap seed-only pack, which can
+  // under-rate a small length set (33844J's [36,32] seed-packs to 28 ft of waste
+  // but full-packs to zero). So the winner sometimes opens more lengths — and
+  // buys more boards — than a subset of those same lengths needs. Re-pack every
+  // subset of the lengths the winner actually used and keep one only if it ties
+  // on waste AND feet with strictly fewer boards. This never trades waste or feet
+  // for board count; it only removes boards that were free to remove.
+  //
+  // Cheap: the LVL/Rim half is already packed once, so each re-pack is I-Joist
+  // alone (~1 ms), and there are at most 2^maxLengths subsets.
+  if (best && best.lengthsUsed.length > 1) {
+    const subs = subsetsUpTo(best.lengthsUsed, best.lengthsUsed.length - 1)
+      .filter((s) => s.length > 0);
+    for (const sub of subs) {
+      const r = evaluate(sub.slice().sort((a, b) => b - a), {});
+      if (!r) continue;
+      const s = r.score;
+      const ties = s.ijoistWaste === best.ijoistWaste
+        && Math.abs(s.feetPurchased - best.feetPurchased) < 1e-9;
+      if (ties && s.boardsPurchased < best.boardsPurchased) {
+        best = s;
+        bestItems = r.items;
+      }
+    }
+  }
 
   return {
     best,

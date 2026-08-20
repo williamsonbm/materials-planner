@@ -210,7 +210,7 @@ test('the full supplier set as a single candidate matches an unconstrained run',
   const cuts = job([[4, 27.5, 'A'], [3, 19.25, 'B'], [2, 41, 'C']]);
   const menu = SUPPLIER;
   const r = selectStockLengths(cuts, { maxLengths: menu.length, menu });
-  assert.equal(r.evaluated, 1, 'C(8,8) is exactly one candidate');
+  assert.equal(r.evaluated, 1, 'choosing all lengths is exactly one candidate');
 
   // Same inputs straight through the engine with no preset at all.
   const items = optimizeCuts([...cuts, ...specialOrderInventoryStubs([SIZE])], {});
@@ -299,18 +299,13 @@ test('33844J: 5 allowed lengths gives ZERO true waste, and the 144 ft is LVL dro
 
   // Every foot of it is LVL, and LVL buys exactly 8 boards at 48 ft.
   //
-  // 51 I-Joist boards, not 43. Both plans buy the same 1,480 ft with zero waste;
-  // they differ only in board COUNT, and the search has no reason to prefer
-  // either once waste and feet tie. 43 is what maxLengths:2 gives ([36,32] —
-  // see the next test). At maxLengths:5 every 5-subset containing 36 and 32 also
-  // drags in three short lengths, and the packer opens them: 51 shorter boards
-  // for the same footage. Under the pre-2026-08-14 menu (nothing below 28 ft)
-  // there were no short lengths to open and this read 43.
-  //
-  // That "more allowed lengths → more boards" behaviour is a real, unfixed
-  // ranking bug, kept visible by the skipped test at the end of this file.
+  // 43 I-Joist boards even though 5 lengths are allowed: the search may use FEWER
+  // than the cap, and here [36,32] alone is the exact fit. It considers the
+  // shorter lengths too, but every plan that opens them buys more boards for the
+  // same feet and the same zero waste, so the two-length plan wins on board
+  // count. See the monotonicity test at the end of this file.
   assert.deepEqual(r.best.byCategory['I-Joist'],
-    { boards: 51, feet: 1480, waste: 0, drops: 0, rawRemainder: 0 });
+    { boards: 43, feet: 1480, waste: 0, drops: 0, rawRemainder: 0 });
   assert.deepEqual(r.best.byCategory.LVL,
     { boards: 8, feet: 384, waste: 0, drops: 144, rawRemainder: 144 });
   assert.deepEqual(r.best.byCategory.RimBoard,
@@ -698,41 +693,37 @@ test('auto switches to greedy once the pool makes exhaustive punishing', () => {
   assert.ok(n3.feasible);
 });
 
-// ---- KNOWN BUG: allowing more lengths can buy MORE boards -------------------
-// SKIPPED DELIBERATELY. This documents a real defect that is not fixed; it is
-// skipped rather than left failing so a red suite always means a NEW break.
-// Un-skip it when the ranking is fixed — do not delete it, and do not "fix" it
-// by relaxing the assertion.
+// ---- allowing more lengths must not quietly cost more boards ----------------
+// The regression guard for the "8 extra boards at the default cap" bug. It used
+// to be skipped and stated too strongly ("never buys more boards"), which is
+// false: a bigger cap legitimately buys MORE boards when it buys LESS waste
+// (34120J goes 42→44 boards as waste drops 92→12 ft). The property that must
+// hold is narrower: when two caps tie on waste AND feet, the bigger cap must not
+// buy more boards — because the smaller cap's plan is always still reachable.
 //
-// Measured on 33844J against the supplier menu, both plans zero-waste:
-//   maxLengths: 2  →  69 boards total (43 I-Joist + 8 LVL + 18 Rim)
-//   maxLengths: 5  →  77 boards total (51 I-Joist + 8 LVL + 18 Rim)
-// Allowing MORE freedom returns a strictly worse plan: same 2,080 ft, same zero
-// waste, 8 extra boards for the yard to handle.
-//
-// WHY. compareCandidates does rank on fewest boards, but only after waste and
-// feet — and those tie here, so the board tiebreak should win. It never gets the
-// chance: no 5-subset of the menu can reproduce the [36,32] plan. Every 5-set
-// containing 36 and 32 also contains three short lengths, and the packer opens
-// them. Of 2,541 candidates evaluated at maxLengths:5, exactly 10 reach zero
-// I-Joist waste and all 10 buy 51 boards.
-//
-// The header comment above the candidate enumeration in selectStockLengths.js
-// asserts the opposite — that a k-set containing a k-1 optimum "scores
-// identically, because the packer simply never opens the unused length." That
-// is false, and it is why this was never noticed. Fixing it means either
-// enumerating subsets of size <= k rather than exactly k, or making the packer
-// prefer consolidating onto fewer, longer boards when waste is already zero.
-//
-// analyzeLengthCount still recommends 2 lengths for this job, so the UI steers a
-// buyer right today. A buyer who overrides it to 5 gets the worse plan.
-test.skip('allowing more lengths never buys more boards (monotone in maxLengths)', () => {
-  const boards = (k) =>
-    selectStockLengths(job33844(), { maxLengths: k, menu: SUPPLIER, topN: 1 })
-      .best.boardsPurchased;
+// 33844J is the case that exposed it. At every cap the I-Joist demand packs into
+// [36,32] with zero waste and 2,080 ft; before the fix the exactly-k search left
+// that two-length plan out of the running for caps >= 4 and returned 77 boards
+// where cap 2 returned 69.
+test('a bigger cap never costs more boards once waste and feet tie', () => {
+  const plan = (k) =>
+    selectStockLengths(job33844(), { maxLengths: k, menu: SUPPLIER, topN: 1 }).best;
 
-  const at2 = boards(2);
-  const at5 = boards(5);
-  assert.ok(at5 <= at2,
-    `5 allowed lengths bought ${at5} boards where 2 bought ${at2} — more freedom must never cost more`);
+  const runs = [1, 2, 3, 4, 5].map((k) => ({ k, ...plan(k) }));
+  for (let i = 1; i < runs.length; i++) {
+    for (let j = 0; j < i; j++) {
+      const lo = runs[j], hi = runs[i];
+      const tie = lo.ijoistWaste === hi.ijoistWaste
+        && Math.abs(lo.feetPurchased - hi.feetPurchased) < 1e-9;
+      if (tie) {
+        assert.ok(hi.boardsPurchased <= lo.boardsPurchased,
+          `cap ${hi.k} bought ${hi.boardsPurchased} boards where cap ${lo.k} bought ` +
+          `${lo.boardsPurchased} at the same ${lo.feetPurchased} ft and ${lo.ijoistWaste} ft waste`);
+      }
+    }
+  }
+
+  // Concretely: at the default cap of 4, 33844J's I-Joist is the consolidated
+  // 43-board plan, not the 51-board one the old exactly-k search returned.
+  assert.equal(plan(4).byCategory['I-Joist'].boards, 43);
 });
