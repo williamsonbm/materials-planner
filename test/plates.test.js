@@ -17,7 +17,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { planPlates, toPurchaseUnits } = require('../src/plates/planPlates.js');
+const { planPlates, toPurchaseUnits, STOCKED_PLATES } = require('../src/plates/planPlates.js');
 const { parsePlateStockCsv, skuKey } = require('../src/plates/readPlateStockCsv.js');
 
 const FIX = path.join(__dirname, 'plate-fixtures');
@@ -290,6 +290,58 @@ test('planPlates correctly identifies stocked vs non-stocked plates', () => {
   if (mt18ahs) {
     assert.strictEqual(mt18ahs.isStocked, true, 'MT18AHS 8x10 is in the stocked plate list');
   }
+});
+
+// ── the stocked-plate list ──────────────────────────────────────────────────
+// Regression cover for a bug that hid in plain sight: MT20 2x6 and MT20HS 7x8
+// were IN the list but typed with a lowercase 'x'. skuKey() uppercases, so
+// Set.has() could never match them and both reported NON-STOCK — a flag that
+// tells engineering to redesign a plate we actually stock. MT20 4x6 was simply
+// missing. Three commits went into the wrong copy of the list before the live
+// one was found, so both halves are locked down here.
+
+// Minimal MiTek plate summary — kept inline rather than as a fixture because the
+// point is these three SKUs and nothing else.
+const STOCK_CHECK_CSV = [
+  'Material Summary,Sample Customer',
+  'Quote Date:,1/2/2026,Job Number:,STOCKCHK',
+  'PLATE SUMMARY,,,,',
+  'SKU,QUANTITY,SIZE-GAUGE,WEIGHT,SQ. INCHES,UNIT COST,TOTAL',
+  ',,,,,,',
+  ',10,MT20  4x6,1.00,240.00,$1.00,$10.00',
+  ',20,MT20  2x6,1.00,240.00,$1.00,$20.00',
+  ',30,MT20HS  7x8,1.00,560.00,$1.00,$30.00',
+  ',60,,3.00,"1,040.00",,$60.00',
+  '',
+].join('\n');
+
+test('MT20 4x6, MT20 2x6 and MT20HS 7x8 report as STOCKED, not special-order', () => {
+  const r = planPlates([{ name: 'stockchk.csv', text: STOCK_CHECK_CSV }], null);
+  assert.deepStrictEqual(r.rejected, [], 'the fixture must parse');
+
+  for (const sku of ['MT20 4x6', 'MT20 2x6', 'MT20HS 7x8']) {
+    const hit = row(r, sku);
+    assert.ok(hit, `${sku} must appear in the plan`);
+    assert.strictEqual(hit.isStocked, true,
+      `${sku} is a stocked SKU — flagging it non-stock sends engineering to redesign a plate we carry`);
+  }
+});
+
+test('every STOCKED_PLATES entry is already uppercase', () => {
+  // skuKey() uppercases its output, so a lowercase entry is unreachable: the
+  // plate silently reports NON-STOCK and nothing anywhere raises an error. This
+  // makes that whole typo class fail loudly at the list instead.
+  const lower = [...STOCKED_PLATES].filter((k) => k !== k.toUpperCase());
+  assert.deepStrictEqual(lower, [],
+    'these entries can never match skuKey() output and are dead: ' + lower.join(', '));
+});
+
+test('every STOCKED_PLATES entry survives skuKey() unchanged', () => {
+  // Stronger than the case check: catches stray spaces or punctuation too, any
+  // of which makes an entry unreachable in exactly the same silent way.
+  const unreachable = [...STOCKED_PLATES].filter((k) => skuKey(k) !== k);
+  assert.deepStrictEqual(unreachable, [],
+    'entries that skuKey() rewrites can never match: ' + unreachable.join(', '));
 });
 
 test('the plate modules require no database, no fs, no network', () => {

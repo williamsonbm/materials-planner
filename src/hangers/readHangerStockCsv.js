@@ -14,6 +14,7 @@
 "use strict";
 
 const { parseCsv } = require('../plates/parseCsv.js');
+const { hangerCanon } = require('./hangerCanon.js');
 
 const SKU_COLS = ['sku', 'sku_display', 'item', 'product', 'description', 'part'];
 const QTY_COLS = ['available', 'qty', 'quantity', 'on_hand', 'onhand'];
@@ -29,9 +30,19 @@ const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, '_');
  * Canonical SKU lookup key.
  * Normalizes case and whitespace while preserving manufacturer product numbers
  * (like ITS1.81/14, HGUS210-2, H2.5A).
+ *
+ * Runs hangerCanon() FIRST so supplier spellings key to the SKU we stock: a job
+ * sheet's STC26 and a stock file's TC26 must produce the same key or the demand
+ * lands UNMATCHED and the buyer special-orders parts already on the shelf. Both
+ * sides of the match go through here, so folding it in at this one point covers
+ * demand and inventory together.
+ *
+ * Deliberately keeps its own loose-but-not-too-loose normalization: uppercase
+ * and strip whitespace only. The heavier punctuation-stripping lives inside
+ * hangerCanon and applies to the alias table alone — see the note there.
  */
 function skuKey(raw) {
-  return String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
+  return hangerCanon(String(raw || '').trim()).toUpperCase().replace(/\s+/g, '');
 }
 
 /**
@@ -57,7 +68,10 @@ function looksLikeHangerStockCsv(text) {
   // Sniff content in the first few data rows: check for common hanger prefixes
   // (ITS, IUS, HUS, HGUS, THA, LUS, LU, H2.5A, LRU, etc.) vs plates (MT20, MT18, etc.)
   const sampleText = rows.slice(1, 10).map((r) => r.join(' ')).join(' ').toUpperCase();
-  const hasHangerHints = /\b(ITS|IUS|HUS|HGUS|THA|LUS|LU|H2\.5A|LRU|LSSR|LSSU|TC24|VPA2|MIU|BA)\b/.test(sampleText);
+  // STC24/STC26 are listed separately from TC24/TC26 on purpose: \b will not
+  // match TC24 inside STC24 (the preceding S is a word character), so a stock
+  // file written in Simpson's spelling would sniff as "not hangers" without them.
+  const hasHangerHints = /\b(ITS|IUS|HUS|HGUS|THA|LUS|LU|H2\.5A|LRU|LSSR|LSSU|TC24|TC26|STC24|STC26|VPA2|MIU|BA)\b/.test(sampleText);
   const hasPlateHints = /\b(MT20|MT18|M20|M18|MP20|MP14|G20)\b/.test(sampleText);
 
   if (hasPlateHints && !hasHangerHints) return false;

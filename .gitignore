@@ -31,3 +31,10 @@ docs/
 # samples/batch-*-scrubbed.csv rule in the inventory app repo.
 test/plate-fixtures/batch-*.csv
 test/plate-fixtures/*-real.csv
+
+# Ad-hoc scrubbed MiTek exports used for manual spot-checks. Scrubbed, but the
+# names are SUBSTITUTIONS ("Cedar Hollow Components Inc.") rather than redactions,
+# so a reader of this public repo cannot tell a plausible fake company from a real
+# one. Curated fixtures live in test/ewp-fixtures/, test/plate-fixtures/ and
+# test/hanger-fixtures/ — put anything worth keeping there instead.
+scrubbed-examples/

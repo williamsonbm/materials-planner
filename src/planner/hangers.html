@@ -376,6 +376,7 @@
                       <th>Job Name</th>
                       <th>Delivery</th>
                       <th>Section</th>
+                      <th>On Sheet</th>
                       <th class="n">Qty</th>
                     </tr>
                   </thead>
@@ -386,6 +387,9 @@
                         <td>${esc(j.jobName || '—')}</td>
                         <td>${esc(j.deliveryDate || '—')}</td>
                         <td>${esc(j.section || 'Hangers')}</td>
+                        <td class="mono">${j.sourceSku
+                          ? `<span class="chip unmatched" title="The material sheet says ${esc(j.sourceSku)}; we stock ${esc(row.sku)} in its place.">${esc(j.sourceSku)}</span>`
+                          : '<span class="zero-ink">—</span>'}</td>
                         <td class="n"><strong>${fmt(j.qty)}</strong></td>
                       </tr>
                     `).join('')}

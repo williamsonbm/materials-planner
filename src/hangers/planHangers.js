@@ -9,6 +9,9 @@
 //   * Shortfall = Math.max(0, demand - available). (If available is negative,
 //     the existing ledger shortfall is preserved in the buy figure).
 //   * Incoming on open POs is REPORTED beside the buy figure, never netted out.
+//   * Supplier spellings are folded onto the SKU we stock (STC26 → TC26) before
+//     matching, reported as a warning, and the as-written spelling is kept on
+//     the job row. See hangerCanon.js for why.
 //   * SKUs not present in the stock catalog are surfaced in `unmatched` / special-order.
 //   * Full drill-down back to the contributing jobs for every SKU.
 // =============================================================
@@ -17,6 +20,7 @@
 
 const { parseHangerSheet } = require('./parseHangerSheet.js');
 const { skuKey } = require('./readHangerStockCsv.js');
+const { hangerCanon, aliasOf } = require('./hangerCanon.js');
 
 /**
  * Plan hanger purchases across a batch of job files against optional stock.
@@ -35,6 +39,12 @@ function planHangers(jobFiles, parsedStock = null) {
 
   // Map of skuKey -> { sku, key, demand, jobs: [{ jobNumber, jobName, deliveryDate, qty, section }] }
   const demandByKey = new Map();
+
+  // Supplier spellings folded onto the SKU we stock (STC26 → TC26 and friends),
+  // tallied across the WHOLE batch so the buyer gets one line per substitution
+  // rather than one per job. Reported, never silent: this swaps one
+  // manufacturer's part number for another's.
+  const aliasedByRaw = new Map();   // as-written spelling -> { canon, qty }
 
   for (const f of jobFiles || []) {
     const res = parseHangerSheet(String(f.text || ''));
@@ -64,9 +74,20 @@ function planHangers(jobFiles, parsedStock = null) {
       const k = skuKey(line.sku);
       if (!k) continue;
 
+      // The buy list is an order sheet, so it names what you actually order.
+      // The as-written spelling is kept on the job row below, so anyone diffing
+      // the plan against the MiTek sheet can see where TC26 came from.
+      const canonSku = hangerCanon(line.sku);
+      const alias = aliasOf(line.sku);
+      if (alias) {
+        const seen = aliasedByRaw.get(line.sku) || { canon: alias.canon, kind: alias.kind, qty: 0 };
+        seen.qty += line.qty;
+        aliasedByRaw.set(line.sku, seen);
+      }
+
       if (!demandByKey.has(k)) {
         demandByKey.set(k, {
-          sku: line.sku,
+          sku: canonSku,
           key: k,
           demand: 0,
           jobs: [],
@@ -82,8 +103,22 @@ function planHangers(jobFiles, parsedStock = null) {
         qty: line.qty,
         section: line.section,
         mtype: line.mtype || '',
+        // Present ONLY when the sheet's spelling differs from what we order, so
+        // the UI can render an origin note without checking every row.
+        sourceSku: canonSku === line.sku ? null : line.sku,
       });
     }
+  }
+
+  for (const [raw, { canon, kind, qty }] of aliasedByRaw) {
+    warnings.push(
+      kind === 'substitution'
+        ? `${raw} ×${qty} → ${canon}: we stock ${canon} in lieu of ${raw}, so this ` +
+          `demand is counted against ${canon} on hand. Different manufacturer's ` +
+          `part number — confirm the substitution before ordering.`
+        : `${raw} ×${qty} → ${canon}: same part, ${raw} is a misspelling of ${canon} ` +
+          `(a "Z" keyed as "2"). Counted against ${canon} on hand.`
+    );
   }
 
   const hasStock = Boolean(parsedStock && parsedStock.byKey);

@@ -23,6 +23,19 @@ npm test                          # → 94 tests, node:test, no framework
 byte-identical on purpose. The packing behaviour is regression-locked over there. Change
 them only deliberately; silent drift between the two copies causes real bugs.
 
+**One divergence exists, and it is intentional.** `DEFAULT_PURCHASE_LENGTHS_BY_CAT["I-Joist"]`
+is `[48,44,40,36,32,28,24,22,20,18,16,14,12,10,8]` here; the hanger app still has the
+original `[48,44,40,36,34,32,30,28]`. This repo buys short I-joists and no longer buys 34 or
+30. That is a purchasing decision, not a port drift — do not "re-sync" it. Everything else
+in these files should still match.
+
+The change arrived in `c4f2486`, whose message was `style: unify drop zones, layout widths,
+and plate buy list alignment`, and it silently moved a board count in a passing test from 43
+to 51 — a red suite nobody could explain for two sessions. `test/ewp-select-lengths.test.js`
+now freezes its own copy of the menu and asserts it against the shipped constant, so the next
+supplier change fails one named assertion instead. **Keep purchasing-data changes in their own
+commit, with a message that says so.**
+
 ## This repo is PUBLIC
 
 - **No identifiable company information in anything committed** — company names, staff

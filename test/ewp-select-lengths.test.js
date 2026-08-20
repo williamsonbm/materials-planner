@@ -10,9 +10,9 @@
 //   3. greenfield stubs stop no_inventory_match from blocking a stock-free batch.
 // The packing itself stays covered by ewp-golden / ewp-twomode / ewp-presets.
 //
-// Every test passes a deliberately SMALL `menu`. The full 19-length menu at
-// maxLengths:3 is 969 candidates and takes ~16s — correct, but not something to
-// pay for on every `npm test`.
+// Every test passes a deliberately SMALL `menu`. The full 21-length
+// IJOIST_LENGTH_MENU at maxLengths:3 is C(21,3) = 1,330 candidates — correct,
+// but not something to pay for on every `npm test`.
 // =============================================================
 
 const { test } = require('node:test');
@@ -31,6 +31,33 @@ const { detectWarnings } = require('../src/ewp/detectWarnings.js');
 const { parseJobCsv } = require('../src/ewp/parseCsv.js');
 
 const FIX = path.join(__dirname, 'ewp-fixtures');
+
+// The I-Joist supplier menu, HARDCODED on purpose — do not swap this back to
+// DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'].
+//
+// It used to read that constant, which meant the expected numbers below silently
+// re-aimed at whatever menu the code happened to ship. On 2026-08-14 a commit
+// titled "style: unify drop zones, layout widths, and plate buy list alignment"
+// changed the menu from [48,44,40,36,34,32,30,28] to the list below — a
+// purchasing change inside a CSS commit — and the only visible symptom was one
+// board count moving 43 → 51, with nothing to say why. A test that follows the
+// data it is testing cannot detect a change to that data.
+//
+// Frozen here, a supplier change now fails ONE named assertion (below) that says
+// exactly what moved, instead of scattering unexplained numbers across the file.
+// When the supplier set really does change: update this array, then re-derive
+// the expectations by hand. Do not paste in whatever the code returned.
+const SUPPLIER = [48, 44, 40, 36, 32, 28, 24, 22, 20, 18, 16, 14, 12, 10, 8];
+
+test('the frozen test menu still matches the shipped supplier set', () => {
+  assert.deepEqual(
+    DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], SUPPLIER,
+    'DEFAULT_PURCHASE_LENGTHS_BY_CAT["I-Joist"] changed. That is a PURCHASING ' +
+    'decision, not a refactor: it changes which lengths every plan may buy. ' +
+    'Confirm it was intended, update SUPPLIER in this file, and re-derive the ' +
+    '33844J expectations by hand.'
+  );
+});
 
 const SIZE = '11 7/8" PJI-40';   // extractDepth -> "11-78"
 
@@ -181,9 +208,9 @@ test('ijoistFeetPurchased minus ijoistWaste equals fixed demand for every candid
 
 test('the full supplier set as a single candidate matches an unconstrained run', () => {
   const cuts = job([[4, 27.5, 'A'], [3, 19.25, 'B'], [2, 41, 'C']]);
-  const menu = DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'];
+  const menu = SUPPLIER;
   const r = selectStockLengths(cuts, { maxLengths: menu.length, menu });
-  assert.equal(r.evaluated, 1, 'C(8,8) is exactly one candidate');
+  assert.equal(r.evaluated, 1, 'choosing all lengths is exactly one candidate');
 
   // Same inputs straight through the engine with no preset at all.
   const items = optimizeCuts([...cuts, ...specialOrderInventoryStubs([SIZE])], {});
@@ -218,9 +245,9 @@ test('multiple jobs combine into one batch buy (real fixtures)', () => {
     ...parseJobCsv(fs.readFileSync(path.join(FIX, '34120J-materials.csv'), 'utf8')),
     ...parseJobCsv(fs.readFileSync(path.join(FIX, '34182J-materials.csv'), 'utf8')),
   ];
-  // Supplier set only (C(8,2) = 28) to keep this fast.
+  // Supplier set only (C(15,2) = 105 candidates) to keep this fast.
   const r = selectStockLengths(cuts, {
-    maxLengths: 2, menu: DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], topN: 1,
+    maxLengths: 2, menu: SUPPLIER, topN: 1,
   });
   assert.ok(r.best, 'a feasible plan exists for the two sample jobs');
   assert.equal(r.best.lengths.length, 2);
@@ -237,7 +264,7 @@ test('multiple jobs combine into one batch buy (real fixtures)', () => {
 test('job order does not change a greenfield batch result', () => {
   const a = parseJobCsv(fs.readFileSync(path.join(FIX, '34120J-materials.csv'), 'utf8'));
   const b = parseJobCsv(fs.readFileSync(path.join(FIX, '34182J-materials.csv'), 'utf8'));
-  const opts = { maxLengths: 1, menu: DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], topN: 1 };
+  const opts = { maxLengths: 1, menu: SUPPLIER, topN: 1 };
   // With no on-hand stock there is nothing scarce to claim first, so the
   // first-seen depletion order in optimizeCuts becomes irrelevant.
   assert.equal(
@@ -253,7 +280,6 @@ test('job order does not change a greenfield batch result', () => {
 // both halves of that: the arithmetic, and the naming.
 
 const CSV_33844 = path.join(FIX, '33844J-materials.csv');
-const SUPPLIER = DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'];
 const job33844 = () => parseJobCsv(fs.readFileSync(CSV_33844, 'utf8'));
 
 test('33844J: demand is 1480 I-Joist / 240 LVL / 216 Rim ft', () => {
@@ -272,6 +298,12 @@ test('33844J: 5 allowed lengths gives ZERO true waste, and the 144 ft is LVL dro
   assert.equal(r.best.rawRemainder, 144, 'raw remainder is what the old code showed');
 
   // Every foot of it is LVL, and LVL buys exactly 8 boards at 48 ft.
+  //
+  // 43 I-Joist boards even though 5 lengths are allowed: the search may use FEWER
+  // than the cap, and here [36,32] alone is the exact fit. It considers the
+  // shorter lengths too, but every plan that opens them buys more boards for the
+  // same feet and the same zero waste, so the two-length plan wins on board
+  // count. See the monotonicity test at the end of this file.
   assert.deepEqual(r.best.byCategory['I-Joist'],
     { boards: 43, feet: 1480, waste: 0, drops: 0, rawRemainder: 0 });
   assert.deepEqual(r.best.byCategory.LVL,
@@ -659,4 +691,39 @@ test('auto switches to greedy once the pool makes exhaustive punishing', () => {
   // And it really is cheaper: the N=3 step only considers "winner + one more".
   const n3 = auto.curve.find((c) => c.n === 3);
   assert.ok(n3.feasible);
+});
+
+// ---- allowing more lengths must not quietly cost more boards ----------------
+// The regression guard for the "8 extra boards at the default cap" bug. It used
+// to be skipped and stated too strongly ("never buys more boards"), which is
+// false: a bigger cap legitimately buys MORE boards when it buys LESS waste
+// (34120J goes 42→44 boards as waste drops 92→12 ft). The property that must
+// hold is narrower: when two caps tie on waste AND feet, the bigger cap must not
+// buy more boards — because the smaller cap's plan is always still reachable.
+//
+// 33844J is the case that exposed it. At every cap the I-Joist demand packs into
+// [36,32] with zero waste and 2,080 ft; before the fix the exactly-k search left
+// that two-length plan out of the running for caps >= 4 and returned 77 boards
+// where cap 2 returned 69.
+test('a bigger cap never costs more boards once waste and feet tie', () => {
+  const plan = (k) =>
+    selectStockLengths(job33844(), { maxLengths: k, menu: SUPPLIER, topN: 1 }).best;
+
+  const runs = [1, 2, 3, 4, 5].map((k) => ({ k, ...plan(k) }));
+  for (let i = 1; i < runs.length; i++) {
+    for (let j = 0; j < i; j++) {
+      const lo = runs[j], hi = runs[i];
+      const tie = lo.ijoistWaste === hi.ijoistWaste
+        && Math.abs(lo.feetPurchased - hi.feetPurchased) < 1e-9;
+      if (tie) {
+        assert.ok(hi.boardsPurchased <= lo.boardsPurchased,
+          `cap ${hi.k} bought ${hi.boardsPurchased} boards where cap ${lo.k} bought ` +
+          `${lo.boardsPurchased} at the same ${lo.feetPurchased} ft and ${lo.ijoistWaste} ft waste`);
+      }
+    }
+  }
+
+  // Concretely: at the default cap of 4, 33844J's I-Joist is the consolidated
+  // 43-board plan, not the 51-board one the old exactly-k search returned.
+  assert.equal(plan(4).byCategory['I-Joist'].boards, 43);
 });
