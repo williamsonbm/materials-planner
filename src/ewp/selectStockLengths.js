@@ -381,11 +381,23 @@ function selectStockLengths(cutItems, opts = {}) {
   const minLength = longestIjoistCut(cutItems);
 
   // Candidates = required lengths + every (maxLengths - required.length) subset
-  // of the rest. maxLengths is an "at most", but enumerating EXACTLY k still
-  // finds a k-1 optimum: the k-set containing those k-1 lengths plus any third
-  // scores identically, because the packer simply never opens the unused length.
-  // `lengthsUsed` on the result reports which ones actually got bought, so a
-  // 5-length answer that only needs 2 says so.
+  // of the rest. maxLengths is an "at most", but only EXACTLY k is enumerated.
+  //
+  // KNOWN BUG — this comment used to claim that was harmless, on the grounds
+  // that a k-set containing a k-1 optimum "scores identically, because the
+  // packer simply never opens the unused length." It does open them. On 33844J
+  // the k=2 winner [36,32] buys 69 boards; no 5-subset can reproduce it, because
+  // every 5-set holding 36 and 32 also holds three shorter lengths the packer
+  // takes up — so k=5 returns 77 boards for the same footage and the same zero
+  // waste. compareCandidates would break that tie on board count, but the better
+  // plan is never in the candidate list to be compared.
+  // Covered by the skipped test at the end of test/ewp-select-lengths.test.js.
+  // The fix is to enumerate subsets of size <= k, or to consolidate onto fewer
+  // long boards once waste hits zero — deliberately not attempted here, since
+  // this ranking is regression-locked against the inventory app.
+  //
+  // `lengthsUsed` on the result reports which lengths actually got bought, so a
+  // 5-length answer that only needs 2 does say so.
   // opts.candidateSets short-circuits enumeration with an explicit list. Used by
   // the "would an unstocked length help?" check, which needs to try a handful of
   // targeted sets rather than every combination of a 19-length menu.

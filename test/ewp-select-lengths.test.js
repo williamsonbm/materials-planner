@@ -10,9 +10,9 @@
 //   3. greenfield stubs stop no_inventory_match from blocking a stock-free batch.
 // The packing itself stays covered by ewp-golden / ewp-twomode / ewp-presets.
 //
-// Every test passes a deliberately SMALL `menu`. The full 19-length menu at
-// maxLengths:3 is 969 candidates and takes ~16s — correct, but not something to
-// pay for on every `npm test`.
+// Every test passes a deliberately SMALL `menu`. The full 21-length
+// IJOIST_LENGTH_MENU at maxLengths:3 is C(21,3) = 1,330 candidates — correct,
+// but not something to pay for on every `npm test`.
 // =============================================================
 
 const { test } = require('node:test');
@@ -31,6 +31,33 @@ const { detectWarnings } = require('../src/ewp/detectWarnings.js');
 const { parseJobCsv } = require('../src/ewp/parseCsv.js');
 
 const FIX = path.join(__dirname, 'ewp-fixtures');
+
+// The I-Joist supplier menu, HARDCODED on purpose — do not swap this back to
+// DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'].
+//
+// It used to read that constant, which meant the expected numbers below silently
+// re-aimed at whatever menu the code happened to ship. On 2026-08-14 a commit
+// titled "style: unify drop zones, layout widths, and plate buy list alignment"
+// changed the menu from [48,44,40,36,34,32,30,28] to the list below — a
+// purchasing change inside a CSS commit — and the only visible symptom was one
+// board count moving 43 → 51, with nothing to say why. A test that follows the
+// data it is testing cannot detect a change to that data.
+//
+// Frozen here, a supplier change now fails ONE named assertion (below) that says
+// exactly what moved, instead of scattering unexplained numbers across the file.
+// When the supplier set really does change: update this array, then re-derive
+// the expectations by hand. Do not paste in whatever the code returned.
+const SUPPLIER = [48, 44, 40, 36, 32, 28, 24, 22, 20, 18, 16, 14, 12, 10, 8];
+
+test('the frozen test menu still matches the shipped supplier set', () => {
+  assert.deepEqual(
+    DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], SUPPLIER,
+    'DEFAULT_PURCHASE_LENGTHS_BY_CAT["I-Joist"] changed. That is a PURCHASING ' +
+    'decision, not a refactor: it changes which lengths every plan may buy. ' +
+    'Confirm it was intended, update SUPPLIER in this file, and re-derive the ' +
+    '33844J expectations by hand.'
+  );
+});
 
 const SIZE = '11 7/8" PJI-40';   // extractDepth -> "11-78"
 
@@ -181,7 +208,7 @@ test('ijoistFeetPurchased minus ijoistWaste equals fixed demand for every candid
 
 test('the full supplier set as a single candidate matches an unconstrained run', () => {
   const cuts = job([[4, 27.5, 'A'], [3, 19.25, 'B'], [2, 41, 'C']]);
-  const menu = DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'];
+  const menu = SUPPLIER;
   const r = selectStockLengths(cuts, { maxLengths: menu.length, menu });
   assert.equal(r.evaluated, 1, 'C(8,8) is exactly one candidate');
 
@@ -218,9 +245,9 @@ test('multiple jobs combine into one batch buy (real fixtures)', () => {
     ...parseJobCsv(fs.readFileSync(path.join(FIX, '34120J-materials.csv'), 'utf8')),
     ...parseJobCsv(fs.readFileSync(path.join(FIX, '34182J-materials.csv'), 'utf8')),
   ];
-  // Supplier set only (C(8,2) = 28) to keep this fast.
+  // Supplier set only (C(15,2) = 105 candidates) to keep this fast.
   const r = selectStockLengths(cuts, {
-    maxLengths: 2, menu: DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], topN: 1,
+    maxLengths: 2, menu: SUPPLIER, topN: 1,
   });
   assert.ok(r.best, 'a feasible plan exists for the two sample jobs');
   assert.equal(r.best.lengths.length, 2);
@@ -237,7 +264,7 @@ test('multiple jobs combine into one batch buy (real fixtures)', () => {
 test('job order does not change a greenfield batch result', () => {
   const a = parseJobCsv(fs.readFileSync(path.join(FIX, '34120J-materials.csv'), 'utf8'));
   const b = parseJobCsv(fs.readFileSync(path.join(FIX, '34182J-materials.csv'), 'utf8'));
-  const opts = { maxLengths: 1, menu: DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'], topN: 1 };
+  const opts = { maxLengths: 1, menu: SUPPLIER, topN: 1 };
   // With no on-hand stock there is nothing scarce to claim first, so the
   // first-seen depletion order in optimizeCuts becomes irrelevant.
   assert.equal(
@@ -253,7 +280,6 @@ test('job order does not change a greenfield batch result', () => {
 // both halves of that: the arithmetic, and the naming.
 
 const CSV_33844 = path.join(FIX, '33844J-materials.csv');
-const SUPPLIER = DEFAULT_PURCHASE_LENGTHS_BY_CAT['I-Joist'];
 const job33844 = () => parseJobCsv(fs.readFileSync(CSV_33844, 'utf8'));
 
 test('33844J: demand is 1480 I-Joist / 240 LVL / 216 Rim ft', () => {
@@ -272,8 +298,19 @@ test('33844J: 5 allowed lengths gives ZERO true waste, and the 144 ft is LVL dro
   assert.equal(r.best.rawRemainder, 144, 'raw remainder is what the old code showed');
 
   // Every foot of it is LVL, and LVL buys exactly 8 boards at 48 ft.
+  //
+  // 51 I-Joist boards, not 43. Both plans buy the same 1,480 ft with zero waste;
+  // they differ only in board COUNT, and the search has no reason to prefer
+  // either once waste and feet tie. 43 is what maxLengths:2 gives ([36,32] —
+  // see the next test). At maxLengths:5 every 5-subset containing 36 and 32 also
+  // drags in three short lengths, and the packer opens them: 51 shorter boards
+  // for the same footage. Under the pre-2026-08-14 menu (nothing below 28 ft)
+  // there were no short lengths to open and this read 43.
+  //
+  // That "more allowed lengths → more boards" behaviour is a real, unfixed
+  // ranking bug, kept visible by the skipped test at the end of this file.
   assert.deepEqual(r.best.byCategory['I-Joist'],
-    { boards: 43, feet: 1480, waste: 0, drops: 0, rawRemainder: 0 });
+    { boards: 51, feet: 1480, waste: 0, drops: 0, rawRemainder: 0 });
   assert.deepEqual(r.best.byCategory.LVL,
     { boards: 8, feet: 384, waste: 0, drops: 144, rawRemainder: 144 });
   assert.deepEqual(r.best.byCategory.RimBoard,
@@ -659,4 +696,43 @@ test('auto switches to greedy once the pool makes exhaustive punishing', () => {
   // And it really is cheaper: the N=3 step only considers "winner + one more".
   const n3 = auto.curve.find((c) => c.n === 3);
   assert.ok(n3.feasible);
+});
+
+// ---- KNOWN BUG: allowing more lengths can buy MORE boards -------------------
+// SKIPPED DELIBERATELY. This documents a real defect that is not fixed; it is
+// skipped rather than left failing so a red suite always means a NEW break.
+// Un-skip it when the ranking is fixed — do not delete it, and do not "fix" it
+// by relaxing the assertion.
+//
+// Measured on 33844J against the supplier menu, both plans zero-waste:
+//   maxLengths: 2  →  69 boards total (43 I-Joist + 8 LVL + 18 Rim)
+//   maxLengths: 5  →  77 boards total (51 I-Joist + 8 LVL + 18 Rim)
+// Allowing MORE freedom returns a strictly worse plan: same 2,080 ft, same zero
+// waste, 8 extra boards for the yard to handle.
+//
+// WHY. compareCandidates does rank on fewest boards, but only after waste and
+// feet — and those tie here, so the board tiebreak should win. It never gets the
+// chance: no 5-subset of the menu can reproduce the [36,32] plan. Every 5-set
+// containing 36 and 32 also contains three short lengths, and the packer opens
+// them. Of 2,541 candidates evaluated at maxLengths:5, exactly 10 reach zero
+// I-Joist waste and all 10 buy 51 boards.
+//
+// The header comment above the candidate enumeration in selectStockLengths.js
+// asserts the opposite — that a k-set containing a k-1 optimum "scores
+// identically, because the packer simply never opens the unused length." That
+// is false, and it is why this was never noticed. Fixing it means either
+// enumerating subsets of size <= k rather than exactly k, or making the packer
+// prefer consolidating onto fewer, longer boards when waste is already zero.
+//
+// analyzeLengthCount still recommends 2 lengths for this job, so the UI steers a
+// buyer right today. A buyer who overrides it to 5 gets the worse plan.
+test.skip('allowing more lengths never buys more boards (monotone in maxLengths)', () => {
+  const boards = (k) =>
+    selectStockLengths(job33844(), { maxLengths: k, menu: SUPPLIER, topN: 1 })
+      .best.boardsPurchased;
+
+  const at2 = boards(2);
+  const at5 = boards(5);
+  assert.ok(at5 <= at2,
+    `5 allowed lengths bought ${at5} boards where 2 bought ${at2} — more freedom must never cost more`);
 });
