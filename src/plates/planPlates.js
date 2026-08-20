@@ -39,19 +39,29 @@ const PACK_FACTORS = require('./packFactors.json');
 
 // Standard stocked plates list provided by engineering / yard operations.
 // Plates outside this set are non-stocked special orders and flagged for redesign.
+//
+// THIS IS THE ONLY COPY. It reaches the browser as `isStocked` on each buy row;
+// plates.html deliberately has no list of its own. A duplicate once lived there
+// and drifted, which is how MT20 2x6 and MT20HS 7x8 spent three commits being
+// "fixed" in the copy that never ran.
+//
+// EVERY ENTRY MUST BE UPPERCASE. skuKey() uppercases what it produces, so a
+// lowercase 'x' here can never match and the plate silently reports NON-STOCK —
+// the exact bug that hid MT20 2x6 and MT20HS 7x8. test/plates.test.js asserts
+// this so the typo fails loudly instead of quietly miscategorizing a plate.
 const STOCKED_PLATES = new Set([
   // M18AHS / MT18AHS (11 SKUs)
   'MT18AHS3X8', 'MT18AHS3X10', 'MT18AHS5X14', 'MT18AHS6X8', 'MT18AHS6X10',
   'MT18AHS6X14', 'MT18AHS7X8', 'MT18AHS7X10', 'MT18AHS8X10', 'MT18AHS8X14',
   'MT18AHS10X10',
-  // MT20 (29 SKUs)
+  // MT20 (31 SKUs)
   'MT2015X3', 'MT2015X4', 'MT202X4', 'MT202X6', 'MT203X3', 'MT203X4', 
   'MT203X6',  'MT203X8', 'MT203X10', 'MT204X4', 'MT204X5', 'MT204X6',
   'MT204X7', 'MT204X10', 'MT204X12', 'MT205X5', 'MT205X6', 'MT205X7', 
   'MT205X8', 'MT205X12', 'MT206X6', 'MT206X8', 'MT207X8', 'MT207X10', 
   'MT207X14', 'MT208X8', 'MT208X14', 'MT2010X10', 'MT2010X14', 
   'MT2012X12', 'MT2012X14',
-  // MT20HS (4 SKUs)
+  // MT20HS (5 SKUs)
   'MT20HS5X10', 'MT20HS6X12', 'MT20HS7X8', 'MT20HS7X10', 'MT20HS10X12',
 ]);
 
