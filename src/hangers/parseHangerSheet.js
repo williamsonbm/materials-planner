@@ -171,9 +171,14 @@ function parseHangerSheet(csvText) {
       if (label === "Hangers" && /\s/.test(sku)) {
         warnings.push(
           `Row ${i + 1}: SKU "${sku}" contains a space — possibly an unrecognized ` +
-          `count-word prefix. Imported AS WRITTEN (it will show UNMATCHED); verify ` +
-          `before trusting this line.`
+          `count-word prefix, which would make the QUANTITY wrong. Imported AS ` +
+          `WRITTEN; verify before trusting this line.`
         );
+        // Deliberately does NOT predict what the SKU will match. This parser
+        // knows nothing about hangerCanon, which folds spacing variants like
+        // "STC 26" onto TC26 downstream — a warning promising "it will show
+        // UNMATCHED" was wrong the moment that landed. The quantity risk is the
+        // real reason to look at this row.
       }
       if (label === "Misc Items") {
         lines.push({ seq, qty, sku, section: label, mtype: typeCol !== -1 ? clean(r[typeCol]) : "" });

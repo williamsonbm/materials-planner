@@ -7,3 +7,5 @@
 * text=auto
 
 test/ewp-fixtures/*.csv  text eol=lf
+
+test/hanger-fixtures/*.csv  text eol=lf
