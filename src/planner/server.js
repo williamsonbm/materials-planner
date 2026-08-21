@@ -76,6 +76,10 @@ const SHARED_ASSETS = {
   '/cutListModel.js': [path.join(__dirname, '..', 'ewp', 'cutListModel.js'), 'application/javascript'],
   '/cutList.js': [path.join(__dirname, '..', '..', 'public', 'cutList.js'), 'application/javascript'],
   '/cutList.css': [path.join(__dirname, '..', '..', 'public', 'cutList.css'), 'text/css'],
+  // The one shared stylesheet + UI helper every planner tab links, so the five
+  // pages stay one tool instead of five drifting copies. Live next to the HTML.
+  '/planner.css': [path.join(__dirname, 'planner.css'), 'text/css'],
+  '/planner-ui.js': [path.join(__dirname, 'planner-ui.js'), 'application/javascript'],
 };
 for (const [route, [file, type]] of Object.entries(SHARED_ASSETS)) {
   app.get(route, (_req, res) => res.type(type).sendFile(file));

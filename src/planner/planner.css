@@ -1,0 +1,148 @@
+/* =============================================================
+   planner.css — the ONE shared stylesheet for every planner tab.
+   =============================================================
+   EWP, Plates, Hangers, LVL and Lumber are one tool and must not look like
+   five. Each page used to inline its own ~110-line copy of this block; they
+   drifted (two different stat-card systems, a warm palette on one page) which
+   read as different applications sitting on the same port. This is now the
+   single source of truth — served at /planner.css by src/planner/server.js and
+   linked from every page. Page-specific rules (buy-table column widths, the
+   row accent colour for that tab) stay inline on each page, clearly the only
+   thing that differs.
+
+   Theme: light palette on :root, dark via prefers-color-scheme. Every colour is
+   a token so the two themes stay in step.
+   ============================================================= */
+
+:root {
+  --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#606a76; --line:#dfe3e8;
+  --accent:#1f6feb; --good-bg:#e8f5ee; --good:#137a45; --warn-bg:#fdf1e3; --warn:#9a5b00;
+  --info-bg:#eaf1fd; --drop:#6a5acd;
+  --surface:#fff; --surface-2:#eef1f4; --line-strong:#c8ced6; --text:#1b1f24;
+  --bad:#b3261e; --bad-bg:#fbeae9;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171a; --card:#1c2024; --ink:#e6e9ed; --muted:#9aa4b0; --line:#2c3238;
+          --accent:#5b9bff; --good-bg:#12291d; --good:#54c58a; --warn-bg:#2b2113; --warn:#e0a34a;
+          --info-bg:#151d2b; --drop:#a99bff;
+          --surface:#1c2024; --surface-2:#23282d; --line-strong:#3a424a; --text:#e6e9ed;
+          --bad:#f2836f; --bad-bg:#2e1614; }
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;padding:24px;
+  font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font:600 20px/1.25 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0 0 4px}
+.sub{color:var(--muted);margin:0}
+a{color:var(--accent)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 6px}
+
+/* ── Tab switcher ─────────────────────────────────────────────────────────── */
+.nav{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.nav a{padding:7px 16px;font-size:13.5px;text-decoration:none;color:var(--muted);
+  background:var(--card);border-right:1px solid var(--line-strong)}
+.nav a:last-child{border-right:0}
+.nav a.on{background:var(--accent);color:#fff}
+.nav a:not(.on):hover{background:var(--surface-2);color:var(--ink)}
+
+/* ── Collapsible drop-zone panel (shared component, see planner-ui.js) ──────
+   Collapsed by default so the action button sits near the top without a
+   scroll. The whole panel is a drop target even while collapsed; clicking the
+   header toggles the zones open. Auto-collapses after the first job file lands. */
+.drop{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.drop.over{border-color:var(--accent);box-shadow:0 0 0 2px var(--info-bg) inset}
+.drop-toggle{width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  background:transparent;color:var(--ink);border:0;border-radius:0;padding:12px 16px;
+  cursor:pointer;font:inherit}
+.drop-toggle:hover{background:var(--surface-2)}
+.drop-caret{color:var(--muted);font-size:13px;transition:transform .12s;display:inline-block}
+.drop.open .drop-caret{transform:rotate(90deg)}
+.drop-title{font-weight:600}
+.drop-count{color:var(--muted);font-size:13px;margin-left:auto;text-align:right}
+.drop-body{padding:0 16px 16px}
+
+.zones{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media(max-width:760px){.zones{grid-template-columns:1fr}}
+.zone{background:var(--card);border:2px dashed var(--line-strong);border-radius:10px;
+  padding:20px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s}
+.zone:hover,.zone.over{border-color:var(--accent);background:var(--info-bg)}
+.zone h3{margin:0 0 4px;font-size:15px;font-weight:600;color:var(--ink)}
+.zone .sub-hint,.zone p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}
+.badge-opt{font-size:11.5px;font-weight:400;color:var(--muted);vertical-align:middle;margin-left:4px}
+.files{margin-top:12px;text-align:left;font-size:12.5px}
+.files > div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--line);color:var(--ink)}
+.files > div:last-child{border-bottom:0}
+.rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
+.rm:hover{color:#c0392b}
+
+/* ── Buttons + action row ──────────────────────────────────────────────────── */
+button{font:inherit;padding:9px 20px;border-radius:6px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--accent)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* ── Notices ───────────────────────────────────────────────────────────────── */
+.note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:11px 15px;
+  border-radius:0 3px 3px 0;font-size:14px}
+.note.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.note.ok{border-left-color:var(--good);background:var(--good-bg)}
+
+/* ── Tables ────────────────────────────────────────────────────────────────── */
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}
+th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+tr.jobs td{background:var(--surface-2);padding:12px 14px}
+
+/* Sortable column headers (Plates buy list). */
+th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+th.sortable:hover{color:var(--ink)}
+.sort-icon{font-size:10.5px;margin-left:4px;display:inline-block;vertical-align:baseline}
+.sort-icon.inactive{color:var(--muted);opacity:.5}
+.sort-icon.active{color:var(--accent)}
+
+/* Drill-down sub-tables (which jobs drive a row). */
+.drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
+table.drill-t{width:auto;min-width:420px;background:var(--card);border:1px solid var(--line);
+  border-radius:6px;overflow:hidden}
+table.drill-t th,table.drill-t td{padding:5px 12px;font-size:13px;border-bottom:1px solid var(--line)}
+table.drill-t tr:last-child td{border-bottom:0}
+.caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px;font-size:13px;display:inline-block}
+
+/* Order-as option list (Plates). */
+.opt{display:block;font-size:13px}
+.opt.best{font-weight:600}
+.spare{color:var(--muted);font-size:12px;white-space:nowrap}
+
+/* ── Chips ─────────────────────────────────────────────────────────────────── */
+.chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+  letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:2px;
+  border:1px solid currentColor;margin-left:6px}
+.chip.warn,.chip.short{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.chip.bad,.chip.unmatched{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+.chip.covered,.chip.ok{color:var(--good);border-color:var(--good);background:var(--good-bg)}
+.chip.incoming{color:var(--accent);border-color:var(--accent);background:var(--info-bg)}
+.chip.neg{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+
+/* ── Stat cards (ONE system for every tab) ─────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 14px}
+.stat .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  font-family:ui-monospace,Menlo,Consolas,monospace}
+.stat .v{font-size:22px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* ── Collapsible detail sections (included jobs, skipped files, warnings) ───── */
+details.sec{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+details.sec summary{font-weight:600;cursor:pointer;user-select:none;color:var(--ink)}
+details.sec[open] summary{margin-bottom:10px}
+
+.hide{display:none}
+.zero-ink{color:var(--muted)}

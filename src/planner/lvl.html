@@ -4,100 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LVL linear-footage planner</title>
+<link rel="stylesheet" href="/planner.css">
 <style>
-  :root {
-    --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#606a76; --line:#dfe3e8;
-    --accent:#1f6feb; --good-bg:#e8f5ee; --good:#137a45; --warn-bg:#fdf1e3; --warn:#9a5b00;
-    --info-bg:#eaf1fd; --drop:#6a5acd;
-    --surface:#fff; --surface-2:#eef1f4; --line-strong:#c8ced6; --text:#1b1f24;
-    --bad:#b3261e; --bad-bg:#fbeae9;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#14171a; --card:#1c2024; --ink:#e6e9ed; --muted:#9aa4b0; --line:#2c3238;
-            --accent:#5b9bff; --good-bg:#12291d; --good:#54c58a; --warn-bg:#2b2113; --warn:#e0a34a;
-            --info-bg:#151d2b; --drop:#a99bff;
-            --surface:#1c2024; --surface-2:#23282d; --line-strong:#3a424a; --text:#e6e9ed;
-            --bad:#f2836f; --bad-bg:#2e1614; }
-  }
-  *{box-sizing:border-box}
-  body{background:var(--bg);color:var(--ink);margin:0;padding:24px;
-    font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-  h1{font:600 20px/1.25 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0 0 4px}
-  .sub{color:var(--muted);margin:0}
-  a{color:var(--accent)}
-  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-  .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 6px}
-
-  .nav{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
-  .nav a{padding:7px 16px;font-size:13.5px;text-decoration:none;color:var(--muted);
-    background:var(--card);border-right:1px solid var(--line-strong)}
-  .nav a:last-child{border-right:0}
-  .nav a.on{background:var(--accent);color:#fff}
-  .nav a:not(.on):hover{background:var(--surface-2);color:var(--ink)}
-
-  .zones{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
-  @media(max-width:760px){.zones{grid-template-columns:1fr}}
-  .zone{background:var(--card);border:2px dashed var(--line-strong);border-radius:10px;
-    padding:20px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s}
-  .zone:hover,.zone.over{border-color:var(--accent);background:var(--info-bg)}
-  .zone h3{margin:0 0 4px;font-size:15px;font-weight:600;color:var(--ink)}
-  .zone .sub-hint,.zone p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}
-  .badge-opt{font-size:11.5px;font-weight:400;color:var(--muted);vertical-align:middle;margin-left:4px}
-  .files{margin-top:12px;text-align:left;font-size:12.5px}
-  .files > div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
-    border-bottom:1px solid var(--line);color:var(--ink)}
-  .files > div:last-child{border-bottom:0}
-  .rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
-  .rm:hover{color:#c0392b}
-
-  button{font:inherit;padding:9px 20px;border-radius:6px;border:1px solid var(--accent);
-    background:var(--accent);color:#fff;cursor:pointer}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  button.ghost{background:transparent;color:var(--accent)}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-  .note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:11px 15px;
-    border-radius:0 3px 3px 0;font-size:14px}
-  .note.bad{border-left-color:var(--bad);background:var(--bad-bg)}
-  .note.ok{border-left-color:var(--good);background:var(--good-bg)}
-
-  table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}
-  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
-  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-
+  /* LVL-specific only — everything else is in /planner.css. */
   tr.depth td:first-child{border-left:3px solid var(--accent)}
   tr.depth.short td:first-child{border-left-color:var(--warn)}
-  tr.jobs td{background:var(--surface-2);padding:12px 14px}
-  .drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
-    letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
-  table.drill-t{width:auto;min-width:440px;background:var(--card);border:1px solid var(--line);
-    border-radius:6px;overflow:hidden}
-  table.drill-t th,table.drill-t td{padding:5px 12px;font-size:13px;border-bottom:1px solid var(--line)}
-  table.drill-t tr:last-child td{border-bottom:0}
-  .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px;font-size:13px;display:inline-block}
-
-  .chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
-    letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:2px;
-    border:1px solid currentColor;margin-left:6px}
-  .chip.short{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
-  .chip.covered{color:var(--good);border-color:var(--good);background:var(--good-bg)}
-
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 14px}
-  .stat .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
-    font-family:ui-monospace,Menlo,Consolas,monospace}
-  .stat .v{font-size:22px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
-
-  details.sec{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
-  details.sec summary{font-weight:600;cursor:pointer;user-select:none;color:var(--ink)}
-  details.sec[open] summary{margin-bottom:10px}
-
-  .zero-ink{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -108,81 +19,28 @@
     <p class="sub">Multi-job LVL usage by depth, in linear feet, netted against stock.</p>
   </div>
 
-  <div class="zones">
-    <div class="zone" id="z-jobs">
-      <h3>Job material summaries</h3>
-      <p class="sub-hint">Drop several, or click to choose. One per job.</p>
-      <input type="file" id="f-jobs" multiple accept=".csv" style="display:none">
-      <div class="files" id="fl-jobs"></div>
-    </div>
-    <div class="zone" id="z-stock">
-      <h3>LVL stock CSV <span class="badge-opt">Optional</span></h3>
-      <p class="sub-hint">Same item,span,qty format as the EWP stock CSV.</p>
-      <input type="file" id="f-stock" accept=".csv" style="display:none">
-      <div class="files" id="fl-stock"></div>
-    </div>
-  </div>
+  <div id="drop-mount"></div>
 
   <div class="row">
     <button id="btn-plan" disabled>Calculate linear feet</button>
-    <button id="btn-clear" class="ghost">Clear</button>
+    <button id="btn-clear" class="ghost" style="display:none">Clear</button>
     <span class="sub" id="msg"></span>
     <span id="busy" style="display:none;color:var(--muted)">Totaling LVL usage…</span>
   </div>
 
-  <div id="out" style="display:flex;flex-direction:column;gap:18px"></div>
+  <div id="out" style="display:flex;flex-direction:column;gap:14px"></div>
 </div>
 
+<script src="/planner-ui.js"></script>
 <script>
 (() => {
-  const S = { jobs: new Map(), stock: null };
-
+  const { esc, fmtNum: fmt, renderStats, renderWarnings } = PlannerUI;
   const el = (id) => document.getElementById(id);
-  const zJobs = el('z-jobs'), zStock = el('z-stock');
-  const fJobs = el('f-jobs'), fStock = el('f-stock');
-  const flJobs = el('fl-jobs'), flStock = el('fl-stock');
   const btnPlan = el('btn-plan'), btnClear = el('btn-clear'), busy = el('busy');
   const msg = el('msg'), out = el('out');
 
-  function updateUi() {
-    btnPlan.disabled = S.jobs.size === 0;
-    btnClear.style.display = (S.jobs.size > 0 || S.stock) ? 'inline-block' : 'none';
-
-    flJobs.innerHTML = '';
-    for (const [name] of S.jobs) {
-      const row = document.createElement('div');
-      row.innerHTML = `<span class="mono">${esc(name)}</span><button class="rm" data-name="${esc(name)}" title="Remove">×</button>`;
-      flJobs.appendChild(row);
-    }
-    flStock.innerHTML = '';
-    if (S.stock) {
-      const row = document.createElement('div');
-      row.innerHTML = `<span class="mono">${esc(S.stock.name)}</span><button class="rm" data-stock="1" title="Remove">×</button>`;
-      flStock.appendChild(row);
-    }
-  }
-
-  function esc(s) {
-    return String(s || '').replace(/[&<>"']/g, (c) => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-  }
-  function fmt(n) {
-    if (n == null || !Number.isFinite(n)) return '—';
-    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
-  }
-
-  async function readFile(file) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve({ name: file.name, text: r.result });
-      r.onerror = () => reject(r.error);
-      r.readAsText(file);
-    });
-  }
-
-  // Sniff if CSV is a stock file (item,span,qty/available shape) rather than
-  // a MiTek material summary (whose header cells are "Job Name:", "LABEL", …).
+  // Sniff a stock file (item,span,qty/available) vs a MiTek material summary
+  // (header cells "Job Name:", "LABEL", …).
   function isStockFile(text) {
     const head = String(text || '').slice(0, 1024).toLowerCase();
     return (head.includes('item') || head.includes('product') || head.includes('description')) &&
@@ -190,54 +48,23 @@
            (head.includes('available') || head.includes('qty') || head.includes('on_hand'));
   }
 
-  async function addFiles(fileList, targetHint) {
-    for (const f of fileList) {
-      if (!f.name.toLowerCase().endsWith('.csv')) continue;
-      const parsed = await readFile(f);
-      if (targetHint === 'stock' || isStockFile(parsed.text)) {
-        S.stock = parsed;
-      } else {
-        S.jobs.set(f.name, parsed);
-      }
-    }
-    updateUi();
-  }
-
-  zJobs.addEventListener('click', (e) => { if (!e.target.closest('.rm')) fJobs.click(); });
-  zStock.addEventListener('click', (e) => { if (!e.target.closest('.rm')) fStock.click(); });
-
-  fJobs.addEventListener('change', () => { addFiles(fJobs.files, 'jobs'); fJobs.value = ''; });
-  fStock.addEventListener('change', () => { addFiles(fStock.files, 'stock'); fStock.value = ''; });
-
-  [zJobs, zStock].forEach((z) => {
-    z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('over'); });
-    z.addEventListener('dragleave', () => z.classList.remove('over'));
-    z.addEventListener('drop', (e) => {
-      e.preventDefault();
-      z.classList.remove('over');
-      const hint = z === zStock ? 'stock' : 'jobs';
-      if (e.dataTransfer.files) addFiles(e.dataTransfer.files, hint);
-    });
-  });
-
-  document.addEventListener('click', (e) => {
-    const rm = e.target.closest('.rm');
-    if (!rm) return;
-    if (rm.dataset.name) {
-      S.jobs.delete(rm.dataset.name);
-      updateUi();
-    } else if (rm.dataset.stock) {
-      S.stock = null;
-      updateUi();
-    }
+  const dz = PlannerUI.dropZones({
+    mount: el('drop-mount'),
+    jobsTitle: 'Job material summaries',
+    jobsHint: 'Drop several, or click to choose. One per job.',
+    stockTitle: 'LVL stock CSV',
+    stockHint: 'Same item,span,qty format as the EWP stock CSV.',
+    isStockFile,
+    onChange() {
+      btnPlan.disabled = dz.isEmpty();
+      btnClear.style.display = (!dz.isEmpty() || dz.getStock()) ? 'inline-block' : 'none';
+    },
   });
 
   btnClear.addEventListener('click', () => {
-    S.jobs.clear();
-    S.stock = null;
+    dz.clear();
     msg.innerHTML = '';
     out.innerHTML = '';
-    updateUi();
   });
 
   btnPlan.addEventListener('click', async () => {
@@ -247,14 +74,10 @@
     btnPlan.disabled = true;
 
     try {
-      const payload = {
-        files: Array.from(S.jobs.values()),
-        stock: S.stock,
-      };
       const res = await fetch('/api/lvl/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ files: dz.getJobs(), stock: dz.getStock() }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -266,7 +89,7 @@
       msg.innerHTML = `<div class="note bad">Request failed: ${esc(err.message)}</div>`;
     } finally {
       busy.style.display = 'none';
-      btnPlan.disabled = false;
+      btnPlan.disabled = dz.isEmpty();
     }
   });
 
@@ -284,33 +107,25 @@
     } else {
       html += `<div class="note ok"><b>Stock:</b> ${esc(p.stockFileName || 'file')}</div>`;
     }
-    if (p.warnings && p.warnings.length) {
-      html += `
-        <details class="sec" style="margin-top:0;margin-bottom:4px">
-          <summary style="font-weight:500;font-size:13px;color:var(--muted)">Ingestion notices &amp; warnings (${p.warnings.length})</summary>
-          <div class="note" style="margin-top:8px;font-size:12.5px;max-height:220px;overflow-y:auto;line-height:1.6">
-            ${p.warnings.map(w => `<div>${esc(w)}</div>`).join('')}
-          </div>
-        </details>
-      `;
-    }
+    html += renderWarnings(p.warnings);
 
     // Stats bar
-    html += `
-      <div class="stats">
-        <div class="stat"><div class="l">Jobs</div><div class="v">${fmt(sum.jobsCount)}</div></div>
-        <div class="stat"><div class="l">Depths</div><div class="v">${fmt(sum.depthsCount)}</div></div>
-        <div class="stat"><div class="l">Used (LF)</div><div class="v">${fmt(sum.totalUsedLf)}</div></div>
-        ${p.hasStock ? `<div class="stat"><div class="l">Stock (LF)</div><div class="v">${fmt(sum.totalStockLf)}</div></div>` : ''}
-        ${p.hasStock ? `<div class="stat"><div class="l">Needed (LF)</div><div class="v" style="color:var(--warn)">${fmt(sum.totalNeededLf)}</div></div>` : ''}
-      </div>
-    `;
+    const stats = [
+      { label: 'Jobs', value: fmt(sum.jobsCount) },
+      { label: 'Depths', value: fmt(sum.depthsCount) },
+      { label: 'Used (LF)', value: fmt(sum.totalUsedLf) },
+    ];
+    if (p.hasStock) {
+      stats.push({ label: 'Stock (LF)', value: fmt(sum.totalStockLf) });
+      stats.push({ label: 'Needed (LF)', value: fmt(sum.totalNeededLf), warn: true });
+    }
+    html += renderStats(stats);
 
     // By-depth table
     if (p.byDepth.length > 0) {
       html += `
         <div>
-          <div class="row" style="justify-content:space-between;margin-top:14px">
+          <div class="row" style="justify-content:space-between;margin-top:0">
             <div class="eyebrow" style="margin:0">By depth — ${p.byDepth.length} size(s)</div>
             <button class="ghost" id="btn-toggle-depths" style="padding:4px 12px;font-size:12.5px">Expand all</button>
           </div>
@@ -486,8 +301,7 @@
       });
     });
 
-    // Expand all / collapse all for the "By depth" section only — the
-    // Included Jobs drill-downs (line items) are left to their own carets.
+    // Expand all / collapse all for the "By depth" section only.
     const btnToggleDepths = el('btn-toggle-depths');
     if (btnToggleDepths) {
       btnToggleDepths.addEventListener('click', () => {
@@ -498,8 +312,6 @@
       });
     }
   }
-
-  updateUi();
 })();
 </script>
 </body>

@@ -42,7 +42,19 @@
   .sub { color:var(--muted); margin:0 0 20px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
           padding:16px; margin-bottom:16px; }
-  .zones { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:16px; }
+  /* Collapsible drop panel — matches the shared component on the other tabs
+     (see planner.css). This page keeps its own copy because its intake is wired
+     into the pool editor and cut-list renderer, not the shared planner-ui.js. */
+  .drop { border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; margin-bottom:16px; }
+  .drop.over { border-color:var(--accent); box-shadow:0 0 0 2px var(--info-bg) inset; }
+  .drop-toggle { width:100%; display:flex; align-items:center; gap:10px; text-align:left; background:transparent; color:var(--ink); border:0; padding:12px 16px; cursor:pointer; font:inherit; }
+  .drop-toggle:hover { background:var(--surface-2); }
+  .drop-caret { color:var(--muted); font-size:13px; transition:transform .12s; display:inline-block; }
+  .drop.open .drop-caret { transform:rotate(90deg); }
+  .drop-title { font-weight:600; }
+  .drop-count { color:var(--muted); font-size:13px; margin-left:auto; text-align:right; }
+  .drop-body { padding:0 16px 16px; }
+  .zones { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
   @media (max-width:760px) { .zones { grid-template-columns:1fr; } }
   .zone { background:var(--card); border:2px dashed var(--line-strong); border-radius:10px;
           padding:20px; text-align:center; cursor:pointer;
@@ -127,20 +139,29 @@
        LVL and Rim Board lengths are set by you, not searched.</p>
   </div>
 
-  <div class="zones">
-    <div class="zone" id="drop">
-      <h3>Material summaries</h3>
-      <p class="sub-hint">Drop several, or click to choose. One per job.</p>
-      <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
-      <ul class="files" id="filelist"></ul>
+  <section class="drop" id="dropPanel" data-open="0">
+    <button type="button" class="drop-toggle" id="dropToggle" aria-expanded="false">
+      <span class="drop-caret">&#9656;</span>
+      <span class="drop-title">Files</span>
+      <span class="drop-count" id="dropCount">Drop CSVs, or click to add</span>
+    </button>
+    <div class="drop-body" id="dropBody" hidden>
+      <div class="zones">
+        <div class="zone" id="drop">
+          <h3>Material summaries</h3>
+          <p class="sub-hint">Drop several, or click to choose. One per job.</p>
+          <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+          <ul class="files" id="filelist"></ul>
+        </div>
+        <div class="zone" id="stockdrop">
+          <h3>Stock on hand <span class="badge-opt">Optional</span></h3>
+          <p class="sub-hint">One CSV with <code>item</code>, <code>span</code>, and a quantity column.</p>
+          <input type="file" id="stockfile" accept=".csv,text/csv" hidden>
+          <ul class="files" id="stocklist"></ul>
+        </div>
+      </div>
     </div>
-    <div class="zone" id="stockdrop">
-      <h3>Stock on hand <span class="badge-opt">Optional</span></h3>
-      <p class="sub-hint">One CSV with <code>item</code>, <code>span</code>, and a quantity column.</p>
-      <input type="file" id="stockfile" accept=".csv,text/csv" hidden>
-      <ul class="files" id="stocklist"></ul>
-    </div>
-  </div>
+  </section>
 
   <div class="card">
     <div class="controls">
@@ -274,6 +295,7 @@ function renderFiles() {
   // Adding a file must not re-enable the button when the page never finished
   // loading — that produced a button that looked live and did nothing at all.
   go.disabled = MENU_FAILED || files.length === 0;
+  updateDropSummary();
 }
 filelist.addEventListener('click', (e) => {
   const b = e.target.closest('.rm');
@@ -284,7 +306,7 @@ filelist.addEventListener('click', (e) => {
 // One file, replaced rather than appended: this is "what is on hand right now",
 // and two of those would just be a question about which is current.
 function renderStock() {
-  if (!stockFile) { stocklist.innerHTML = ''; return; }
+  if (!stockFile) { stocklist.innerHTML = ''; updateDropSummary(); return; }
   const s = STOCK || {};
   let detail;
   if (s.error) detail = `<span style="color:var(--warn)">${esc(s.error)}</span>`;
@@ -298,6 +320,7 @@ function renderStock() {
     `<li><span>${esc(stockFile.name)}<br><span class="hint">${detail}</span></span>` +
     '<button class="rm" id="rmstock" title="remove">&times;</button></li>' +
     coverageNote();
+  updateDropSummary();
 }
 
 // Name the products the stock file says NOTHING about. That is not the same as
@@ -362,6 +385,7 @@ async function addFiles(list) {
     files.push({ name: f.name, text: await f.text() });
   }
   renderFiles();
+  if (files.length && !autoCollapsed) { autoCollapsed = true; setPanel(false); }
   await inspect();
 }
 
@@ -384,6 +408,40 @@ stockInput.addEventListener('change', () => { setStock(stockInput.files); stockI
   ['dragleave','drop'].forEach((ev) =>
     el.addEventListener(ev, (e) => { e.preventDefault(); el.classList.remove('over'); }));
   el.addEventListener('drop', (e) => handler(e.dataTransfer.files));
+});
+
+// ---- collapsible files panel ----------------------------------------------
+// Matches the other tabs: collapsed by default so the controls sit near the
+// top, auto-collapses once the first job file lands, and the whole panel takes
+// a drop even while collapsed (routed to addFiles; the server sniff re-files a
+// stock CSV afterwards, same as a job-zone drop would).
+const dropPanel = document.getElementById('dropPanel');
+const dropToggle = document.getElementById('dropToggle');
+const dropBody = document.getElementById('dropBody');
+const dropCount = document.getElementById('dropCount');
+let autoCollapsed = false;
+function setPanel(open) {
+  dropPanel.dataset.open = open ? '1' : '0';
+  dropPanel.classList.toggle('open', open);
+  dropBody.hidden = !open;
+  dropToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function updateDropSummary() {
+  const j = files.length;
+  if (!j && !stockFile) { dropCount.textContent = 'Drop CSVs, or click to add'; return; }
+  const parts = [j + (j === 1 ? ' job file' : ' job files')];
+  if (stockFile) parts.push('stock ✓');
+  dropCount.textContent = parts.join('  ·  ');
+}
+dropToggle.addEventListener('click', () => setPanel(dropPanel.dataset.open !== '1'));
+dropPanel.addEventListener('dragover', (e) => { e.preventDefault(); dropPanel.classList.add('over'); });
+dropPanel.addEventListener('dragleave', (e) => { if (!dropPanel.contains(e.relatedTarget)) dropPanel.classList.remove('over'); });
+dropPanel.addEventListener('drop', (e) => {
+  dropPanel.classList.remove('over');
+  // Let the individual zones handle their own drops when expanded.
+  if (e.target.closest('#drop') || e.target.closest('#stockdrop')) return;
+  e.preventDefault();
+  addFiles(e.dataTransfer.files);
 });
 
 // ---- how long will this take? ----------------------------------------------

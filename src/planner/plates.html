@@ -4,78 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Plate purchase planner</title>
+<link rel="stylesheet" href="/planner.css">
 <style>
-  /* Palette COPIED VERBATIM from planner.html. These two pages are one tool and
-     must not look like two — an earlier version of this file invented its own
-     warm palette, which read as a different application sitting on the same
-     port. If planner.html's tokens change, change them here too. */
-  :root {
-    --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#606a76; --line:#dfe3e8;
-    --accent:#1f6feb; --good-bg:#e8f5ee; --good:#137a45; --warn-bg:#fdf1e3; --warn:#9a5b00;
-    --info-bg:#eaf1fd; --drop:#6a5acd;
-    --surface:#fff; --surface-2:#eef1f4; --line-strong:#c8ced6; --text:#1b1f24;
-    /* planner.html has no error colour — it never needed one. Added here in the
-       same key so a data fault reads as a fault, not as a link. */
-    --bad:#b3261e; --bad-bg:#fbeae9;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#14171a; --card:#1c2024; --ink:#e6e9ed; --muted:#9aa4b0; --line:#2c3238;
-            --accent:#5b9bff; --good-bg:#12291d; --good:#54c58a; --warn-bg:#2b2113; --warn:#e0a34a;
-            --info-bg:#151d2b; --drop:#a99bff;
-            --surface:#1c2024; --surface-2:#23282d; --line-strong:#3a424a; --text:#e6e9ed;
-            --bad:#f2836f; --bad-bg:#2e1614; }
-  }
-  *{box-sizing:border-box}
-  body{background:var(--bg);color:var(--ink);margin:0;padding:24px;
-    font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-  h1{font:600 20px/1.25 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0 0 4px}
-  .sub{color:var(--muted);margin:0}
-  a{color:var(--accent)}
-  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-  .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 6px}
-
-  .nav{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
-  .nav a{padding:7px 16px;font-size:13.5px;text-decoration:none;color:var(--muted);
-    background:var(--card);border-right:1px solid var(--line-strong)}
-  .nav a:last-child{border-right:0}
-  .nav a.on{background:var(--accent);color:#fff}
-  .nav a:not(.on):hover{background:var(--surface-2);color:var(--ink)}
-
-  .zones{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
-  @media(max-width:760px){.zones{grid-template-columns:1fr}}
-  .zone{background:var(--card);border:2px dashed var(--line-strong);border-radius:10px;
-    padding:20px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s}
-  .zone:hover,.zone.over{border-color:var(--accent);background:var(--info-bg)}
-  .zone h3{margin:0 0 4px;font-size:15px;font-weight:600;color:var(--ink)}
-  .zone .sub-hint,.zone p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}
-  .badge-opt{font-size:11.5px;font-weight:400;color:var(--muted);vertical-align:middle;margin-left:4px}
-  .files{margin-top:12px;text-align:left;font-size:12.5px}
-  .files > div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;
-    border-bottom:1px solid var(--line);color:var(--ink)}
-  .files > div:last-child{border-bottom:0}
-  .rm{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
-  .rm:hover{color:#c0392b}
-
-  button{font:inherit;padding:9px 20px;border-radius:6px;border:1px solid var(--accent);
-    background:var(--accent);color:#fff;cursor:pointer}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  button.ghost{background:transparent;color:var(--accent)}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-  .note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:11px 15px;
-    border-radius:0 3px 3px 0;font-size:14px}
-  .note.bad{border-left-color:var(--bad);background:var(--bad-bg)}
-  .note.ok{border-left-color:var(--good);background:var(--good-bg)}
-
-  table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}
-  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
-  th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-  /* Fixed layout with left-aligned metric columns leaving generous space for ORDER AS */
+  /* Plate-specific only — everything else is in /planner.css. */
   table.buy{table-layout:fixed}
   table.buy col.c-sku{width:220px}
   table.buy col.c-need{width:80px}
@@ -86,36 +17,6 @@
   tr.buy td:first-child{border-left:3px solid var(--warn)}
   tr.buy.non-stock td{background:var(--bad-bg);color:var(--ink)}
   tr.buy.non-stock td:first-child{border-left:3px solid var(--bad)}
-  tr.jobs td{background:var(--surface-2);padding:12px 14px}
-  .drill h4{margin:0 0 7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
-    letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
-  table.drill-t{width:auto;min-width:420px;background:var(--card);border:1px solid var(--line);
-    border-radius:6px;overflow:hidden}
-  table.drill-t th,table.drill-t td{padding:5px 12px;font-size:13px;border-bottom:1px solid var(--line)}
-  table.drill-t tr:last-child td{border-bottom:0}
-  .caret{cursor:pointer;user-select:none;color:var(--muted);margin-right:6px;font-size:13px;display:inline-block}
-  th.sortable{cursor:pointer;user-select:none;transition:color .15s}
-  th.sortable:hover{color:var(--ink)}
-  .sort-icon{font-size:10.5px;margin-left:4px;display:inline-block;vertical-align:baseline}
-  .sort-icon.inactive{color:var(--muted);opacity:.5}
-  .sort-icon.active{color:var(--accent)}
-  .opt{display:block;font-size:13px}
-  .opt.best{font-weight:600}
-  .spare{color:var(--muted);font-size:12px;white-space:nowrap}
-  .chip{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
-    letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:2px;
-    border:1px solid currentColor;margin-left:6px}
-  .chip.warn{color:var(--warn)}
-  .chip.bad{color:var(--bad)}
-  .stat{display:flex;gap:26px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
-    border-radius:8px;padding:14px 18px}
-  .stat div span{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
-    letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-  .stat div b{font-size:21px;font-variant-numeric:tabular-nums}
-  details.sec{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:14px}
-  details.sec summary{font-weight:600;cursor:pointer;user-select:none;color:var(--ink)}
-  details.sec[open] summary{margin-bottom:10px}
-  .hide{display:none}
 </style>
 </head>
 <body>
@@ -127,20 +28,7 @@
     <p class="sub">Multi-job plate demand consolidated and converted to orderable units.</p>
   </div>
 
-  <div class="zones">
-    <div class="zone" id="zJobs">
-      <h3>Material summaries</h3>
-      <p class="sub-hint">Drop several, or click to choose. One per job.</p>
-      <div class="files" id="fJobs"></div>
-    </div>
-    <div class="zone" id="zStock">
-      <h3>Plate stock CSV <span class="badge-opt">Optional</span></h3>
-      <p class="sub-hint">Stock&nbsp;&rarr;&nbsp;Plates&nbsp;&rarr;&nbsp;Export CSV.</p>
-      <div class="files" id="fStock"></div>
-    </div>
-  </div>
-  <input type="file" id="pick" accept=".csv,text/csv" multiple class="hide">
-  <input type="file" id="pickStock" accept=".csv,text/csv" class="hide">
+  <div id="drop-mount"></div>
 
   <div class="row">
     <button id="go" disabled>Work out what to buy</button>
@@ -148,92 +36,51 @@
     <span class="sub" id="msg"></span>
   </div>
 
-  <div id="out"></div>
+  <div id="out" style="display:flex;flex-direction:column;gap:14px"></div>
 </div>
 
+<script src="/planner-ui.js"></script>
 <script>
+const { esc, fmtInt: n, renderStats, renderWarnings } = PlannerUI;
 const $ = (s) => document.querySelector(s);
-let jobFiles = [], stockFile = null;
 let currentPlanData = null;
-let sortCol = 'buy'; // 'sku' | 'need' | 'buy'
-let sortDir = 'desc'; // 'asc' | 'desc'
+let sortCol = 'buy';   // 'sku' | 'need' | 'buy'
+let sortDir = 'desc';  // 'asc' | 'desc'
 const openDrills = new Set();
 
 // NOTE: the stocked-plate list lives in ONE place — STOCKED_PLATES in
 // src/plates/planPlates.js — and reaches this page as `isStocked` on every buy
-// row. A second copy used to live here as a fallback; it was unreachable
-// (planPlates always sets isStocked), so editing it looked like a fix and did
-// nothing. Do not reintroduce a browser-side copy: if a plate is miscategorized,
+// row. Do not reintroduce a browser-side copy: if a plate is miscategorized,
 // the list to fix is the one on the server.
 
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
-  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
-const n = (v) => Number(v || 0).toLocaleString();
 // "box" -> "boxes", not "boxs". Only the units that actually occur.
 const plural = (w, k) => k === 1 ? w : (w === 'box' ? 'boxes' : w + 's');
 
-function paint() {
-  $('#fJobs').innerHTML = jobFiles.map((f, i) =>
-    `<div><span>${esc(f.name)}</span><button class="rm" data-i="${i}" title="remove">&times;</button></div>`
-  ).join('');
-  $('#fStock').innerHTML = stockFile
-    ? `<div><span>${esc(stockFile.name)}</span><button class="rm" id="rmStock" title="remove">&times;</button></div>`
-    : '';
-  $('#go').disabled = jobFiles.length === 0;
-  $('#clear').style.display = (jobFiles.length > 0 || stockFile) ? 'inline-block' : 'none';
+function isStockFile(text) {
+  const head = String(text || '').slice(0, 1024).toLowerCase();
+  return (head.includes('sku') || head.includes('item')) &&
+         (head.includes('available') || head.includes('on_hand') || head.includes('qty')) &&
+         !head.includes('span') && !head.includes('material name');
 }
 
-function readFiles(list, cb) {
-  const out = [];
-  let left = list.length;
-  if (!left) return cb(out);
-  for (const file of list) {
-    const r = new FileReader();
-    r.onload = () => { out.push({ name: file.name, text: String(r.result || '') }); if (!--left) cb(out); };
-    r.onerror = () => { if (!--left) cb(out); };
-    r.readAsText(file);
-  }
-}
+const dz = PlannerUI.dropZones({
+  mount: $('#drop-mount'),
+  jobsTitle: 'Material summaries',
+  jobsHint: 'Drop several, or click to choose. One per job.',
+  stockTitle: 'Plate stock CSV',
+  stockHint: 'Stock → Plates → Export CSV.',
+  isStockFile,
+  onChange() {
+    $('#go').disabled = dz.isEmpty();
+    $('#clear').style.display = (!dz.isEmpty() || dz.getStock()) ? 'inline-block' : 'none';
+  },
+});
 
-function wire(zoneId, onFiles) {
-  const z = $(zoneId);
-  z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('over'); });
-  z.addEventListener('dragleave', () => z.classList.remove('over'));
-  z.addEventListener('drop', (e) => {
-    e.preventDefault(); z.classList.remove('over');
-    readFiles([...e.dataTransfer.files], onFiles);
-  });
-}
-wire('#zJobs', (fs) => { jobFiles = jobFiles.concat(fs); paint(); });
-wire('#zStock', (fs) => { if (fs[0]) stockFile = fs[0]; paint(); });
-$('#zJobs').addEventListener('click', (e) => {
-  const rm = e.target.closest('.rm');
-  if (rm) {
-    e.stopPropagation();
-    jobFiles.splice(Number(rm.dataset.i), 1);
-    paint();
-    return;
-  }
-  $('#pick').click();
-});
-$('#zStock').addEventListener('click', (e) => {
-  const rm = e.target.closest('.rm');
-  if (rm) {
-    e.stopPropagation();
-    stockFile = null;
-    paint();
-    return;
-  }
-  $('#pickStock').click();
-});
-$('#pick').addEventListener('change', (e) =>
-  readFiles([...e.target.files], (fs) => { jobFiles = jobFiles.concat(fs); paint(); }));
-$('#pickStock').addEventListener('change', (e) =>
-  readFiles([...e.target.files], (fs) => { if (fs[0]) stockFile = fs[0]; paint(); }));
 $('#clear').addEventListener('click', () => {
-  jobFiles = []; stockFile = null; currentPlanData = null; openDrills.clear();
+  dz.clear();
+  currentPlanData = null; openDrills.clear();
   sortCol = 'buy'; sortDir = 'desc';
-  $('#out').innerHTML = ''; $('#msg').textContent = ''; paint();
+  $('#out').innerHTML = ''; $('#msg').textContent = '';
 });
 
 $('#go').addEventListener('click', async () => {
@@ -241,7 +88,7 @@ $('#go').addEventListener('click', async () => {
   try {
     const res = await fetch('/api/plates/plan', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: jobFiles, stock: stockFile }),
+      body: JSON.stringify({ files: dz.getJobs(), stock: dz.getStock() }),
     });
     const d = await res.json();
     $('#msg').textContent = '';
@@ -260,7 +107,7 @@ $('#go').addEventListener('click', async () => {
     currentPlanData = null;
     $('#out').innerHTML = '<div class="note bad">' + esc(err.message) + '</div>';
   } finally {
-    $('#go').disabled = jobFiles.length === 0;
+    $('#go').disabled = dz.isEmpty();
   }
 });
 
@@ -303,6 +150,7 @@ function getSortedBuyList(buyList) {
 
 function render(d) {
   if (!d) return;
+  const hasStock = !!d.stockInfo;
   let h = '';
 
   // Staleness first. The stock file is a manual export, so it can be old — and a
@@ -310,7 +158,7 @@ function render(d) {
   if (d.stockError) {
     h += '<div class="note bad"><b>Stock file not read:</b> ' + esc(d.stockError) +
       '<br>Planned as if the yard were empty — every plate shows as a buy.</div>';
-  } else if (!d.stockInfo) {
+  } else if (!hasStock) {
     h += '<div class="note"><b>No stock file.</b> Everything below is a full buy, ' +
       'not a shortfall.</div>';
   } else {
@@ -320,47 +168,45 @@ function render(d) {
       (d.stockInfo.lastCounted ? ' · last counted ' + esc(d.stockInfo.lastCounted) : '') +
       '</div>';
   }
-  const warnings = (d.stockInfo && d.stockInfo.warnings) || [];
-  if (warnings.length) {
-    h += '<details class="sec" style="margin-top:0;margin-bottom:4px">' +
-      '<summary style="font-weight:500;font-size:13px;color:var(--muted)">Ingestion notices &amp; warnings (' + warnings.length + ')</summary>' +
-      '<div class="note bad" style="margin-top:8px;font-size:12.5px;max-height:220px;overflow-y:auto;line-height:1.6">' +
-      warnings.map((w) => '<div>' + esc(w) + '</div>').join('') +
-      '</div></details>';
-  }
+  h += renderWarnings((d.stockInfo && d.stockInfo.warnings) || [], 'bad');
 
-  h += '<div class="stat">' +
-    '<div><span>Jobs</span><b>' + n(d.totals.jobs) + '</b></div>' +
-    '<div><span>Plate SKUs</span><b>' + n(d.totals.skusDemanded) + '</b></div>' +
-    '<div><span>Short</span><b>' + n(d.totals.skusShort) + '</b></div>' +
-    '<div><span>Eaches needed</span><b>' + n(d.totals.eachesDemanded) + '</b></div>' +
-    '<div><span>Eaches to buy</span><b>' + n(d.totals.eachesShort) + '</b></div>' +
-    '</div>';
+  h += renderStats([
+    { label: 'Jobs', value: n(d.totals.jobs) },
+    { label: 'Plate SKUs', value: n(d.totals.skusDemanded) },
+    { label: 'Short', value: n(d.totals.skusShort) },
+    { label: 'Eaches needed', value: n(d.totals.eachesDemanded) },
+    { label: 'Eaches to buy', value: n(d.totals.eachesShort) },
+  ]);
 
   const rawBuy = d.toBuy || [];
   const buy = getSortedBuyList(rawBuy);
 
   if (buy.length) {
-    h += '<div class="row" style="justify-content:space-between;margin-top:14px">' +
+    h += '<div class="row" style="justify-content:space-between;margin-top:0">' +
       '<p class="eyebrow" style="margin:0">Buy list — ' + n(buy.length) + ' SKU(s)</p>' +
       '<button class="ghost" id="btn-toggle-drills" style="padding:4px 12px;font-size:12.5px">' +
       (buy.every((r) => openDrills.has(r.key)) ? 'Collapse all' : 'Expand all') + '</button></div>';
   } else {
-    h += '<p class="eyebrow" style="margin-top:14px">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
+    h += '<p class="eyebrow" style="margin-top:0">Buy list — ' + n(buy.length) + ' SKU(s)</p>';
   }
   if (!buy.length) {
     h += '<div class="note ok">Nothing to buy — stock covers every plate in these jobs.</div>';
   } else {
+    // Have and Incoming are stock-derived; they only appear with a stock file.
+    const colgroup = hasStock
+      ? '<col class="c-sku"><col class="c-need"><col class="c-have"><col class="c-buy"><col class="c-order"><col class="c-inc">'
+      : '<col class="c-sku"><col class="c-need"><col class="c-buy"><col class="c-order">';
+    const span = hasStock ? 6 : 4;
     h += '<div class="tw"><table class="buy">' +
-      '<colgroup><col class="c-sku"><col class="c-need"><col class="c-have">' +
-      '<col class="c-buy"><col class="c-order"><col class="c-inc"></colgroup>' +
+      '<colgroup>' + colgroup + '</colgroup>' +
       '<thead><tr>' +
       '<th class="sortable" data-col="sku">SKU ' + sortIndicator('sku') + '</th>' +
       '<th class="sortable" data-col="need">Need ' + sortIndicator('need') + '</th>' +
-      '<th>Have</th>' +
+      (hasStock ? '<th>Have</th>' : '') +
       '<th class="sortable" data-col="buy">Buy (eaches) ' + sortIndicator('buy') + '</th>' +
       '<th>Order as</th>' +
-      '<th class="n">Incoming</th></tr></thead><tbody>';
+      (hasStock ? '<th class="n">Incoming</th>' : '') +
+      '</tr></thead><tbody>';
 
     buy.forEach((r) => {
       const isStocked = r.isStocked;
@@ -372,8 +218,8 @@ function render(d) {
         (!isStocked ? '<span class="chip bad">Non-Stock</span>' : '') +
         '</td>' +
         '<td>' + n(r.needEaches) + '</td>' +
-        '<td' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
-          n(r.availableEaches) + '</td>' +
+        (hasStock ? '<td' + (r.negativeStock ? ' style="color:var(--bad)"' : '') + '>' +
+          n(r.availableEaches) + '</td>' : '') +
         '<td><b>' + n(r.shortEaches) + '</b>' +
         (r.shortFromLedger > 0
           ? '<br><span class="spare" title="This SKU is already below zero in the stock file, so '
@@ -382,9 +228,10 @@ function render(d) {
             + ' short</span>'
           : '') + '</td>' +
         '<td>' + optionsHtml(r.purchase) + '</td>' +
-        '<td class="n">' + (r.incoming ? n(r.incoming) : '<span class="spare">—</span>') + '</td></tr>';
+        (hasStock ? '<td class="n">' + (r.incoming ? n(r.incoming) : '<span class="spare">—</span>') + '</td>' : '') +
+        '</tr>';
 
-      h += '<tr class="jobs' + (isExpanded ? '' : ' hide') + '" id="j-' + esc(r.key) + '"><td colspan="6"><div class="drill">' +
+      h += '<tr class="jobs' + (isExpanded ? '' : ' hide') + '" id="j-' + esc(r.key) + '"><td colspan="' + span + '"><div class="drill">' +
         '<h4>Driving demand — ' + n(r.byJob.length) + ' job(s) for ' + esc(r.sku) + '</h4>' +
         '<table class="drill-t"><thead><tr><th>Job #</th><th>Name</th>' +
         '<th class="n">Qty</th><th>Delivery</th></tr></thead><tbody>' +
@@ -395,8 +242,10 @@ function render(d) {
         '</tbody></table></div></td></tr>';
     });
     h += '</tbody></table></div>';
-    h += '<p class="sub" style="font-size:13px;margin-top:6px">Incoming is shown, never subtracted — whether an ' +
-      'open order lands in time is your call, not the tool\'s.</p>';
+    if (hasStock) {
+      h += '<p class="sub" style="font-size:13px;margin-top:6px">Incoming is shown, never subtracted — whether an ' +
+        'open order lands in time is your call, not the tool\'s.</p>';
+    }
     h += '<div class="note bad" style="margin-top:10px;font-size:13.5px">' +
       '<b>Non-Stock Plate Notice:</b> Any non-stocked plates should be identified and redesigned to use stocked plates.</div>';
   }
@@ -454,8 +303,6 @@ function render(d) {
     });
   }
 }
-
-paint();
 </script>
 </body>
 </html>
