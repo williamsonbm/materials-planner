@@ -146,8 +146,7 @@ echo ---------------------------
 echo Starting on http://127.0.0.1:%PORT% ...
 echo Your browser will open automatically in a moment.
 echo.
-echo Do NOT close this window while you're using the planner.
-echo Closing this window stops the planner.
+echo TO STOP: close this window, or double-click "Stop Planner.bat".
 echo.
 
 start /b "" "%~f0" __open_browser__ %PORT%
@@ -176,10 +175,18 @@ HOW TO START
 2. Open the folder and double-click "Run Planner.bat".
 3. A black window will open - this is normal. Leave it open while you use
    the planner. Your web browser will open automatically in a few seconds.
-4. When you're done, just close the black window. That stops the planner.
+4. When you're done, stop it either way:
+     - close the black window, OR
+     - double-click "Stop Planner.bat".
+   Both shut the planner down completely.
 
 TO START IT AGAIN LATER
 Double-click "Run Planner.bat" again. Nothing needs to be reinstalled.
+
+TO STOP IT ANY TIME
+Double-click "Stop Planner.bat". It closes the planner even if the black
+window was already closed or you can't find it. (If nothing is running, it
+just says so.)
 
 IF WINDOWS SHOWS A WARNING
 - "Windows protected your PC" (blue box): click "More info", then
@@ -200,13 +207,40 @@ This tool never sends your files anywhere. Everything happens on this
 computer.
 '@
 
+# A guaranteed one-click stop: kills whatever is serving on 127.0.0.1:3000, so
+# it works even if the black window was already closed or lost. No PowerShell.
+$stop = @'
+@echo off
+setlocal EnableExtensions
+title Stop Materials Purchase Planner
+
+set "PORT=3000"
+set "KILLED="
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr "LISTENING" ^| findstr "127.0.0.1:%PORT%"') do (
+    taskkill /F /PID %%a >nul 2>&1
+    set "KILLED=1"
+)
+
+echo.
+if defined KILLED (
+    echo The Materials Purchase Planner has been stopped.
+) else (
+    echo The planner does not appear to be running.
+)
+echo.
+echo This window will close by itself in a moment.
+timeout /t 3 /nobreak >nul
+endlocal
+'@
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 function Write-Crlf($path, $text) {
   $normalized = ($text -replace "`r`n", "`n") -replace "`n", "`r`n"
   [System.IO.File]::WriteAllText($path, $normalized, $utf8NoBom)
 }
-Write-Crlf (Join-Path $StageDir 'Run Planner.bat') $bat
-Write-Crlf (Join-Path $StageDir 'README.txt')      $readme
+Write-Crlf (Join-Path $StageDir 'Run Planner.bat')  $bat
+Write-Crlf (Join-Path $StageDir 'Stop Planner.bat') $stop
+Write-Crlf (Join-Path $StageDir 'README.txt')       $readme
 
 # ---- 6. zip it --------------------------------------------------------------
 if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
