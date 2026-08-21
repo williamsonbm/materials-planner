@@ -5,8 +5,8 @@ distinct stock lengths you're willing to order, and get back the length sets tha
 what you have to buy.
 
 ```
-npm install && npm run planner    # → http://127.0.0.1:5178
-npm test                          # → 94 tests, node:test, no framework
+npm install && npm run planner    # → http://127.0.0.1:3000
+npm test                          # → 153 tests, node:test, no framework
 ```
 
 ## Hard constraints — do not break these

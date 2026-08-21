@@ -1,6 +1,7 @@
 // =============================================================
 // planner/server.js — the DB-FREE local entry point.
-// Run with: npm start   →  http://localhost:3000
+// Run with: npm run planner   →  http://127.0.0.1:3000
+// (`npm start` runs the repo-root server.js, which wraps this same app.)
 // =============================================================
 // A standalone purchase planner for a laptop (Linux or Windows 11). Drop in one
 // or more MiTek "Material Summary" CSVs, say how many distinct stock lengths
