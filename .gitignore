@@ -38,3 +38,9 @@ test/plate-fixtures/*-real.csv
 # one. Curated fixtures live in test/ewp-fixtures/, test/plate-fixtures/ and
 # test/hanger-fixtures/ — put anything worth keeping there instead.
 scrubbed-examples/
+
+# Ad-hoc on-hand stock exports (hanger/plate/EWP inventory snapshots) dropped in
+# for manual spot-checks. Same reasoning as scrubbed-examples/ above: real stock
+# figures and any embedded names don't belong in a public repo. Curated stock
+# fixtures live under test/*-fixtures/ (e.g. plate-stock-synthetic.csv).
+stock-examples/
